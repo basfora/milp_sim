@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
-from class_room import MyRoom
-import files_fun as ff
+from scenes.class_room import MyRoom
+import scenes.files_fun as ff
 from milp_mespp.core import extract_info as ext
-import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 
 
@@ -100,9 +99,10 @@ def house_hri():
     return house
 
 
-# generic functions
-def nodes_and_conections(scenario: dict):
+def wall_nodes_connections(scenario: dict):
     """Loop through scenario and add nodes and connections to lists
+    :param scenario : dictionary of rooms (class)
+    return :
     wall_nodes = [(x1, y1), (x2, y2)...]
     wall_conn = [(p1, p2)..]"""
 
@@ -131,6 +131,9 @@ def nodes_and_conections(scenario: dict):
 
 
 def plot_points_between_list(v_points, v_conn, color, style='.-'):
+    """Plot points and their connections
+    :param v_points = [(x1, y1), (x2, y2)...]
+    :param v_conn = [(0, 1), (1, 2)...]"""
 
     my_handle = None
     for wall_k in v_conn:
@@ -148,19 +151,27 @@ def plot_points_between_list(v_points, v_conn, color, style='.-'):
     return my_handle
 
 
-def plot_points(vertices: dict, color, style='o'):
-    """Plot vertices from V dictionary"""
-    my_handle = None
+def plot_points(vertices: dict or list, color, style='o'):
+    """Plot vertices from
+     (dict) V[v] = (x,y)
+     (list) V = [(x1, y1), (x2, y2)...]"""
 
-    for k in vertices.keys():
-        if not isinstance(k, int):
-            continue
-        x = [vertices[k][0]]
-        y = [vertices[k][1]]
+    if isinstance(vertices, dict):
+        for k in vertices.keys():
+            if not isinstance(k, int):
+                continue
+            x = [vertices[k][0]]
+            y = [vertices[k][1]]
+            plt.plot(x, y, color + style,  markersize=2)
+    elif isinstance(vertices, list):
+        for v in vertices:
+            x = v[0]
+            y = v[1]
+            plt.plot(x, y, color + style, markersize=2)
+    else:
+        print('Wrong input format, accepts dict or list')
 
-        my_handle = plt.plot(x, y, color + style,  markersize=2)
-
-    return my_handle
+    return None
 
 
 def save_plot(fig_name: str, folder='figs', my_ext='.pdf'):
@@ -179,16 +190,28 @@ def save_plot(fig_name: str, folder='figs', my_ext='.pdf'):
 def finish_plot(op='school', lgd=None):
 
     fig_name = ''
-    my_ext = '.pdf'
+    my_ext = '.png'
     folder = 'figs'
 
     if op == 'school':
         plt.title('School Scenario')
-        fig_name = 'school'
+        fig_name = 'school_1'
         if lgd is not None:
-            floorplan = mlines.Line2D([], [], color='k', label=lgd[0])
-            graph = mlines.Line2D([], [], color='m', label=lgd[1], marker='o', markersize=5)
-            plt.legend(handles=[floorplan, graph])
+            my_hand = []
+            if len(lgd) >= 2:
+                floorplan = mlines.Line2D([], [], color='k', label=lgd[0])
+                graph = mlines.Line2D([], [], color='m', label=lgd[1], marker='o', markersize=5)
+                my_hand = [floorplan, graph]
+            if len(lgd) == 3:
+                robot = mlines.Line2D([], [], color='b', label=lgd[2])
+                my_hand.append(robot)
+            plt.legend(handles=my_hand)
+    elif op == 'robot_only':
+        plt.title('Robot Pose \n(non-aligned)')
+        fig_name = 'robotpose_1'
+        if lgd is not None:
+            robot = mlines.Line2D([], [], color='b', label=lgd[2])
+            plt.legend(handles=[robot])
 
     save_plot(fig_name, folder, my_ext)
 
@@ -199,21 +222,41 @@ def plot_school():
     # set up scenario
     school = ss_1()
 
-    # school floorplan
-    wall_nodes, wall_conn = nodes_and_conections(school)
-    # plot
+    # school floor plan
+    wall_nodes, wall_conn = wall_nodes_connections(school)
+    # plot floor plan
     plot_points_between_list(wall_nodes, wall_conn, 'k', '-')
 
     # get graph info
-    f_name = 'SchoolGraph'
-    V = ff.get_vertices(f_name)
-    # plot vertices
-    graph = plot_points(V, 'm')
+    f_name = ['School_VGraph', 'School_EGraph', 'School_RPose']
+    V = ff.get_info(f_name[0], 'V')
+    E = ff.get_info(f_name[1], 'E')
 
-    lgd = ['Floorplan', 'Graph']
+    E_plot = []
+    for el in E:
+        v1 = el[0] - 1
+        v2 = el[1] - 1
+        E_plot.append((v1, v2))
+
+    plot_points_between_list(V, E_plot, 'm', '.-')
+
+    lgd = ['Floorplan', 'Graph']#, 'Robot']
 
     finish_plot('school', lgd)
 
+def plot_pose():
+    # get graph info
+    f_name = ['School_VGraph', 'School_EGraph', 'School_RPose']
+    RPose = ff.get_info(f_name[2], 'R')
+    R_x = [el[0] for el in RPose]
+    R_y = [el[1] for el in RPose]
+    plt.plot(R_x, R_y, 'b-')
+
+    lgd = ['Floorplan', 'Graph', 'Robot']
+
+    finish_plot('robot_only', lgd)
+
 
 if __name__ == '__main__':
-    plot_school()
+    # plot_school()
+    plot_pose()
