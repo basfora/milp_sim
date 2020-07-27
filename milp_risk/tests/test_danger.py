@@ -1,5 +1,5 @@
 import milp_mespp.core.extract_info as ext
-from scripts.r_classes import MyDanger
+from milp_risk.scripts.hazard_model import MyDanger
 
 
 def get_param():
