@@ -1,6 +1,7 @@
 from milp_mespp.classes.searcher import MySearcher
 from milp_mespp.classes.inputs import MyInputs
 from milp_mespp.core import extract_info as ext
+from milp_sim.milp_risk.scripts.danger import MyDanger
 
 
 class MySearcher2(MySearcher):
@@ -15,7 +16,7 @@ class MySearcher2(MySearcher):
         # inherit parent class methods and properties
         super().__init__(searcher_id, v0, g, capture_range, zeta, my_seed)
 
-        self.danger_levels = [1, 2, 3, 4, 5]
+        self.danger_levels = MyDanger.define_danger_levels()[0]
 
         # initial thresholds
         # danger threshold
@@ -105,4 +106,82 @@ class MyInputs2(MyInputs):
 
         self.rho = None
         self.kappa = None
+
+        # type of danger threshold (d - deterministic or p - probabilistic)
+        self.perception_list = MyDanger.define_danger_perceptions()
+        self.danger_perception = self.perception_list[0]
+        self.prob_default = 0.5
+
+        self.danger_levels, self.n_levels, self.level_label, self.level_color = MyDanger.define_danger_levels()[0]
+
+    def set_danger_perception(self, my_type: str):
+
+        if my_type not in self.perception_list:
+            print('Error! Danger type not valid, please choose from %s' % str(self.perception_list))
+            exit()
+
+        self.danger_perception = my_type
+
+    def set_danger_threshold(self, value: int or list):
+        """Set danger thresholds for each searcher
+        :param value :
+        if int --> assign the same for all searchers
+        if list --> assign each element to a searchers"""
+
+        my_list = []
+        m = self.size_team
+
+        # same threshold for all searchers
+        if isinstance(value, int):
+            # populate for number of searchers
+            my_list = [value for s in m]
+
+        elif isinstance(value, list):
+
+            # point estimate (each element in the list corresponds to one searcher)
+            if self.danger_perception == self.perception_list[0]:
+                # check if all searchers received a threshold
+                self.check_size(value, m)
+                my_list = value
+
+            # pdf
+            elif self.danger_perception == self.perception_list[1]:
+
+                # list of list (first element)
+                if isinstance(value[0], list):
+                    # repeat that list for all searchers
+                    my_list = [value[0] for s in m]
+                else:
+                    # pdf, list of different thresholds for each searcher
+                    for s in range(m):
+                        my_list.append(value[s])
+
+        else:
+            print('Error! Only accepts int or list')
+            exit()
+
+        self.kappa = my_list
+
+    def set_target_threshold(self, my_rho: float or list):
+
+        my_list = []
+        if isinstance(my_rho, list):
+            self.check_size(my_rho, self.size_team)
+            my_list = my_rho
+        else:
+            for s in range(self.size_team):
+                my_list.append(my_rho[s])
+
+        self.rho = my_list
+
+    @staticmethod
+    def check_size(my_list, team_size):
+        len_list = len(my_list)
+        # check if it's point estimate, but wrong number of thresholds was given
+        if len_list != team_size:
+            print('Error! There are %d searchers, but %d thresholds. Please verify and run again.'
+                  % (team_size, len_list))
+            exit()
+
+        return
 
