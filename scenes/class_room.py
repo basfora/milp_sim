@@ -4,7 +4,7 @@ Rooms are assumed to be rectangular"""
 
 class MyRoom:
 
-    def __init__(self, label: str, dim: tuple, c0: tuple, door=None):
+    def __init__(self, label: str, dim: tuple, c0=None, door=None):
 
         # name of the room
         self.label = label
@@ -35,12 +35,21 @@ class MyRoom:
         # room area
         self.area = 0.0
 
-        self.set_coordinates()
         self.set_area()
 
-    def set_coordinates(self):
-        c = self.get_coordinates(self.dim, self.c1)
+        if self.c1 is not None:
+            self.set_coordinates()
+
+    def set_coordinates(self, c0=None):
+
+        if c0 is None:
+            c0 = self.c1
+        c = self.get_coordinates(self.dim, c0)
         self.c = c
+
+        self.c1, self.c2, self.c3, self.c4 = c[0], c[1], c[2], c[3]
+
+        # print(self.label + ': ' + str(self.c))
 
         self.conn = self.get_connections(c)
 
@@ -66,10 +75,10 @@ class MyRoom:
 
         # bottom left (given) / right
         c1 = (x0, y0)
-        c2 = (x0 + dx, y0)
+        c4 = (x0 + dx, y0)
 
         # top left/right
-        c4 = (x0, y0 + dy)
+        c2 = (x0, y0 + dy)
         c3 = (x0 + dx, y0 + dy)
 
         c = list()
@@ -78,8 +87,8 @@ class MyRoom:
         c.append(c3)
         c.append(c4)
 
-        # for i in range(len(c)):
-        #     c[i] = (round(c[i][0], 4), round(c[i][0], 4))
+        for i in range(len(c)):
+            c[i] = (round(c[i][0], 2), round(c[i][1], 2))
 
         return c
 
@@ -166,6 +175,9 @@ class MyRoom:
     #     self.c_all = aux_c
 
     def merge(self, dim: tuple, c0: tuple):
+        """
+        :param dim : dimension of area to merge
+        :param c0 : bottom left coordinates of area to merge"""
 
         c_r1 = self.c
         area_r1 = self.area

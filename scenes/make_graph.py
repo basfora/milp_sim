@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
-from scenes.class_room import MyRoom
-import scenes.files_fun as ff
-from milp_mespp.core import extract_info as ext
 import matplotlib.lines as mlines
+from milp_mespp.core import extract_info as ext
+
+from milp_sim.scenes.class_room import MyRoom
+from milp_sim.scenes import files_fun as ff
 
 
 # scenarios
@@ -11,7 +12,7 @@ def ss_1():
     MyRoom(label, dim, c0, door)
     label: str
     dim: (x, y)
-    c0: (x0, y0)
+    c0: (x0, y0) - bottom left
     door: (x0, y0, 'v/h', size)"""
 
     n_rooms = 10
@@ -63,6 +64,205 @@ def ss_1():
     return school
 
 
+def ss_gazebo():
+    """Parameters of the School Scenario
+        MyRoom(label, dim, c0=None, door=None)
+        label: str
+        dim: (x, y)
+        c0: (x0, y0) - bottom left
+        door: (x0, y0, 'v/h', size)"""
+
+    n_rooms = 12
+    room_list = list(range(1, n_rooms + 1))
+
+    school = ext.create_dict(room_list, None)
+
+    # Gym
+    school[1] = MyRoom('Gym', (17, 31))
+
+    # Hall
+    H1 = MyRoom('H1', (3.4, round(16.4 - 3.9, 2)))
+    H2 = MyRoom('H2', (60-10, 3.9))
+    H3 = MyRoom('H3', (10, 8.3))
+
+    school[2] = H1
+    school[11] = H2
+    school[12] = H3
+
+    # small rooms
+    school[3] = MyRoom('A', (5.83, 3))
+    school[4] = MyRoom('B', (5.83, 3))
+    school[5] = MyRoom('C', (5.83, 3))
+    # classrooms
+    school[6] = MyRoom('D', (7.9, 5.5))
+    school[7] = MyRoom('E', (7.9, 5.5))
+    school[8] = MyRoom('F', (7.9, 5.5))
+    school[9] = MyRoom('G', (7.9, 5.5))
+    school[10] = MyRoom('Cafe', (10, 17))
+
+    return school
+
+
+def delta_origin():
+    """origin is at bottom left (0, 0) of floor plan
+    (encounter of cafe vertical and gym horizontal"""
+
+    x_cafe = 10
+    x_hall = 60
+    x_gym = 17
+
+    dx = x_cafe + x_hall - x_gym
+
+    # how did I find this out?
+    dy = 33
+
+    return dx, dy
+
+
+def space_between():
+    """space between rooms of school"""
+
+    # Gym-A, A-B, B-C
+    y = [1.2, 0.6, 0.6]
+    # H2-D, D-E, E-F, F-G
+    x = [1.5, 1.4, 1.4, 1.4]
+
+    return x, y
+
+
+def translate():
+
+    # floorplan info
+    dx, dy = delta_origin()
+    spacex, spacey = space_between()
+    school_g = ss_gazebo()
+
+    gym = school_g[1]
+    h1 = school_g[2]
+    h2 = school_g[11]
+    h3 = school_g[12]
+    a, b, c = school_g[3], school_g[4], school_g[5]
+    d, e, f, g = school_g[6], school_g[7], school_g[8], school_g[9]
+    cafe = school_g[10]
+
+    gym.set_coordinates((dx, 0))
+
+    # nivel da gym
+    x_right, x_left, y_bottom, y_top = update_ref(gym)
+
+    # hall 1
+    h1_c0 = (x_right - h1.dim[0], y_top)
+    h1.set_coordinates(h1_c0)
+
+    # A
+    c0 = (x_right-h1.dim[0]-a.dim[0], y_top + spacey[0])
+    a.set_coordinates(c0)
+    x_right, x_left, y_bottom, y_top = update_ref(a)
+
+    # b
+    c0 = (x_left, y_top + spacey[1])
+    b.set_coordinates(c0)
+    x_right, x_left, y_bottom, y_top = update_ref(b)
+    # c
+    c0 = (x_left, y_top + spacey[2])
+    c.set_coordinates(c0)
+    x_right, x_left, y_bottom, y_top = update_ref(h1)
+
+    # hall 2
+    c0 = (x_right-h2.dim[0], y_top)
+    h2.set_coordinates(c0)
+    x_right, x_left, y_bottom, y_top = update_ref(h2)
+
+    # D
+    c0 = (x_right - spacex[0] - d.dim[0], y_top)
+    d.set_coordinates(c0)
+    x_right, x_left, y_bottom, y_top = update_ref(d)
+
+    # E
+    c0 = (x_left - spacex[1] - e.dim[0], y_bottom)
+    e.set_coordinates(c0)
+    x_right, x_left, y_bottom, y_top = update_ref(e)
+
+    # F
+    c0 = (x_left - spacex[2] - f.dim[0], y_bottom)
+    f.set_coordinates(c0)
+    x_right, x_left, y_bottom, y_top = update_ref(f)
+
+    # G
+    c0 = (x_left - spacex[3] - g.dim[0], y_bottom)
+    g.set_coordinates(c0)
+    x_right, x_left, y_bottom, y_top = update_ref(h2)
+
+    # hall 3
+    c0 = (x_left-h3.dim[0], y_bottom)
+    h3.set_coordinates(c0)
+
+    # cafe
+    c0 = (0.0, 33.0)
+    cafe.set_coordinates(c0)
+    x_right, x_left, y_bottom, y_top = update_ref(cafe)
+
+    # save
+    school = dict()
+    school[1] = gym
+    school[2] = h1
+    school[3] = a
+    school[4] = b
+    school[5] = c
+    school[6] = d
+    school[7] = e
+    school[8] = f
+    school[9] = g
+    school[10] = cafe
+    school[11] = h2
+    school[12] = h3
+
+    return school
+
+
+def merge_hall(school_block):
+
+    school = dict()
+    h1 = school_block[2]
+    h2 = school_block[11]
+    h3 = school_block[12]
+
+    h1.merge(h2.dim, h2.c1)
+    h1.merge(h3.dim, h3.c1)
+
+    for room_id in school_block.keys():
+        if room_id == 2:
+            my_room = h1
+        elif room_id > 10:
+            break
+        else:
+            my_room = school_block[room_id]
+
+        school[room_id] = my_room
+
+    return school
+
+
+def build_school():
+    school_block = translate()
+    school = merge_hall(school_block)
+
+    # TODO print in txt file
+    # ROOM c
+
+    return school
+
+
+def update_ref(room):
+    x_right = room.c3[0]
+    y_top = room.c3[1]
+
+    x_left = room.c1[0]
+    y_bottom = room.c1[1]
+
+    return x_right, x_left, y_bottom, y_top
+
+
 def house_hri():
     """label: str
     dim: (x, y)  c0: (x0, y0)"""
@@ -99,6 +299,7 @@ def house_hri():
     return house
 
 
+# ----------------------------------------------------------------------------------
 def wall_nodes_connections(scenario: dict):
     """Loop through scenario and add nodes and connections to lists
     :param scenario : dictionary of rooms (class)
@@ -244,6 +445,7 @@ def plot_school():
 
     finish_plot('school', lgd)
 
+
 def plot_pose():
     # get graph info
     f_name = ['School_VGraph', 'School_EGraph', 'School_RPose']
@@ -257,6 +459,20 @@ def plot_pose():
     finish_plot('robot_only', lgd)
 
 
+def plot_school_gazebo():
+    # set up scenario
+    school = build_school()
+
+    # school floor plan
+    wall_nodes, wall_conn = wall_nodes_connections(school)
+    # plot floor plan
+    plot_points_between_list(wall_nodes, wall_conn, 'k', '-')
+
+    save_plot('gazebo_env%d' % 5)
+
+
 if __name__ == '__main__':
     # plot_school()
-    plot_pose()
+    # plot_pose()
+    # translate()
+    plot_school_gazebo()

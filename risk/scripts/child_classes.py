@@ -1,7 +1,9 @@
+"""Child classes from original milp_mespp classes: added danger-related info"""
 from milp_mespp.classes.searcher import MySearcher
 from milp_mespp.classes.inputs import MyInputs
+from milp_mespp.classes.solver_data import MySolverData
 from milp_mespp.core import extract_info as ext
-from milp_sim.milp_risk.scripts.danger import MyDanger
+from milp_sim.risk.scripts.danger import MyDanger
 
 
 class MySearcher2(MySearcher):
@@ -184,4 +186,31 @@ class MyInputs2(MyInputs):
             exit()
 
         return
+
+
+class MySolverData2(MySolverData):
+
+    def __init__(self, horizon, deadline, theta, my_graph, solver_type='central', timeout=30*60):
+        # inherit parent class methods and properties
+        super().__init__(horizon, deadline, theta, my_graph, solver_type, timeout)
+
+        self.eta = dict()
+        self.rho = dict()
+        self.u = dict()
+        self.w = dict()
+        self.A = dict()
+
+    def store_risk_vars(self, eta, rho, u, w, t, A=1):
+
+        self.eta[t] = eta
+        self.rho[t] = rho
+        self.u[t] = u
+        self.w[t] = w
+        self.A[t] = A
+
+
+
+
+
+
 

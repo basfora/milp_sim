@@ -1,5 +1,5 @@
 from milp_mespp.core import extract_info as ext, plot_fun as pf
-from milp_sim.milp_risk.scripts import r_plotfun as rpf
+from milp_sim.risk.scripts import r_plotfun as rpf
 import pickle
 from igraph import *
 
@@ -463,7 +463,7 @@ class MyHazard:
         my_graph = (self.g_name.split('.'))[0]
 
         name_folder = self.type + '_' + my_graph + '_' + my_date
-        whole_path = ext.get_outside_path(name_folder, 'r_data', 'milp_risk')
+        whole_path = ext.get_outside_path(name_folder, 'r_data', 'risk')
 
         # name of this folder, eg smoke_G9V_grid_date#_run#
         self.folder_name = name_folder
