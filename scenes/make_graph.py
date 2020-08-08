@@ -268,10 +268,12 @@ def place_ss2(school_g=ss_2(), bloat=False):
 def save_coord_ss2():
     """Create txt and save floor plan coordinates"""
 
+    bloat = True
+
     # floorplan
-    school_g = ss_2()
+    school_g = ss_2(bloat)
     # place in space (delta origin)
-    school = place_ss2(school_g)
+    school = place_ss2(school_g, bloat)
 
     coord_list = []
     for k in school.keys():
@@ -283,7 +285,7 @@ def save_coord_ss2():
     line1 = ["SS-2", "Gazebo Floorplan Coordinates"]
     line2 = ["ID", "C1", "C2", "C3", "C4"]
 
-    ff.make_txt_str("School_Coordinates", coord_list, line1, line2)
+    ff.make_txt_str("School_Coordinates_Bloat", coord_list, line1, line2)
 
 
 def build_school(bloat=False):
@@ -624,5 +626,6 @@ def plot_both_ss2():
 
 
 if __name__ == '__main__':
-    align_pose_school()
+    # align_pose_school()
     # plot_both_ss2()
+    save_coord_ss2()
