@@ -7,7 +7,7 @@ def test_dimensions():
     """
 
     # generate school (dimensions only) -- Gazebo env
-    school = mg.ss_gazebo()
+    school = mg.ss_2()
 
     gym = school[1]
     h1 = school[2]
@@ -35,7 +35,7 @@ def test_dimensions():
 
 
 def test_coordinates():
-    school = mg.translate()
+    school = mg.place_ss2()
 
     gym = school[1]
     h1 = school[2]

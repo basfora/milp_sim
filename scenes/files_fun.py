@@ -236,6 +236,33 @@ def make_txt(file_name: str, my_list: list, line1: list, line2: list, line_f='{0
 
     f.close()
 
+    return
+
+
+def make_txt_str(file_name: str, my_list: list, line1: list, line2: list, line_f='{0:4s} {1:8s} {2:8s} {3:8s} {4:8s} \n'):
+
+    f_path = get_file_path(file_name)
+    f = open(f_path, 'w+')
+
+    line1 = '{0:4s} {1:8s} \n'.format(line1[0], line1[1])
+    line2 = '{0:4s} {1:8s} {2:8s} {3:8s} {4:8s} \n'.format(line2[0], line2[1], line2[2], line2[3], line2[4])
+    f.write(line1)
+    f.write(line2)
+
+    for el in my_list:
+        name = el[0]
+        c1 = str(el[1])
+        c2 = str(el[2])
+        c3 = str(el[3])
+        c4 = str(el[4])
+
+        my_text = line_f.format(name, c1, c2, c3, c4)
+        f.write(my_text)
+
+    f.close()
+
+    return
+
 
 def extract_robot_motion(name_file='School_CamsLeft'):
 
@@ -282,6 +309,10 @@ def get_edges(name_file, parent_folder='txt_files'):
 
 
 def get_info(name_file, what='V', parent_folder='txt_files'):
+    """Get data from txt file and convert to data list
+    :param name_file : name of the file, without txt extension
+    :param what : V = vertices, E = edges, R = pose
+    :param parent_folder"""
     file_path = get_file_path(name_file, parent_folder)
 
     if what == 'V' or what == 'R':
@@ -295,8 +326,25 @@ def get_info(name_file, what='V', parent_folder='txt_files'):
     return data
 
 
+def trans_pose(delta: tuple):
+    """parse robots pose and translate according to delta
+    save as txt file"""
+
+    pose = get_info('School_RPose', 'R')
+
+    # translate
+    pose2 = []
+    for pt in pose:
+        x = (pt[0] + delta[0])
+        y = (pt[1] + delta[1])
+        pose2.append((x, y))
+
+    return pose2
+
+
 if __name__ == '__main__':
-    make_txt_edges()
-    make_txt_pose()
+    # make_txt_edges()
+    # make_txt_pose()
+    trans_pose((0, 0))
 
 

@@ -5,6 +5,12 @@ from milp_mespp.core import extract_info as ext
 from milp_sim.scenes.class_room import MyRoom
 from milp_sim.scenes import files_fun as ff
 
+# ieee compliant plots
+plt.rcParams.update({'text.usetex': True})
+plt.rcParams.update({'font.family': 'serif'})
+
+
+a = 1.1
 
 # scenarios
 def ss_1():
@@ -64,8 +70,8 @@ def ss_1():
     return school
 
 
-def ss_gazebo():
-    """Parameters of the School Scenario
+def ss_2(bloat=False):
+    """Parameters of the School Scenario [floor plan, no origin]
         MyRoom(label, dim, c0=None, door=None)
         label: str
         dim: (x, y)
@@ -75,51 +81,69 @@ def ss_gazebo():
     n_rooms = 12
     room_list = list(range(1, n_rooms + 1))
 
+    dim = [(0, 0), (17, 31), (3.4, round(16.4 - 3.9, 2)), (5.83, 3), (5.83, 3), (5.83, 3),
+           (7.9, 5.5), (7.9, 5.5), (7.9, 5.5), (7.9, 5.5), (10, 17), (60-10, 3.9), (10, 8.3)]
+
+    if bloat:
+        dim_b = [(a * el[0], a * el[1]) for el in dim]
+        # manual corrections
+        dim_b[6] = (a * (7.9 + 1.6), a * 5.5)
+        dim_b[7] = (a * (7.9 + 1.6), a * 5.5)
+        dim_b[8] = (a * (7.9 + 1.6), a * 5.5)
+        dim_b[9] = (a * (7.9 + 1.6), a * 5.5)
+        dim_b[10] = (a * (10+1), (a * 17) + 4.5)
+        dim = dim_b
+
     school = ext.create_dict(room_list, None)
 
     # Gym
-    school[1] = MyRoom('Gym', (17, 31))
+    school[1] = MyRoom('Gym', dim[1])
 
     # Hall
-    H1 = MyRoom('H1', (3.4, round(16.4 - 3.9, 2)))
-    H2 = MyRoom('H2', (60-10, 3.9))
-    H3 = MyRoom('H3', (10, 8.3))
+    H1 = MyRoom('H1', dim[2])
+    H2 = MyRoom('H2', dim[11])
+    H3 = MyRoom('H3', dim[12])
 
     school[2] = H1
     school[11] = H2
     school[12] = H3
 
     # small rooms
-    school[3] = MyRoom('A', (5.83, 3))
-    school[4] = MyRoom('B', (5.83, 3))
-    school[5] = MyRoom('C', (5.83, 3))
+    school[3] = MyRoom('A', dim[3])
+    school[4] = MyRoom('B', dim[4])
+    school[5] = MyRoom('C', dim[5])
     # classrooms
-    school[6] = MyRoom('D', (7.9, 5.5))
-    school[7] = MyRoom('E', (7.9, 5.5))
-    school[8] = MyRoom('F', (7.9, 5.5))
-    school[9] = MyRoom('G', (7.9, 5.5))
-    school[10] = MyRoom('Cafe', (10, 17))
+    school[6] = MyRoom('D', dim[6])
+    school[7] = MyRoom('E', dim[7])
+    school[8] = MyRoom('F', dim[8])
+    school[9] = MyRoom('G', dim[9])
+    school[10] = MyRoom('Cafe', dim[10])
 
     return school
 
 
-def delta_origin():
+# placing wrt origin
+def delta_origin(bloat=False):
     """origin is at bottom left (0, 0) of floor plan
-    (encounter of cafe vertical and gym horizontal"""
+    (encounter of cafe vertical and gym horizontal)"""
 
     x_cafe = 10
     x_hall = 60
     x_gym = 17
+    y_cafe = 1.8
 
-    dx = x_cafe + x_hall - x_gym
-
-    # how did I find this out?
-    dy = 33
+    if bloat:
+        dx = 53 # 5.5
+        dy = 0 #-19
+    else:
+        # how did I find this out?
+        dy = 0
+        dx = x_cafe + x_hall - x_gym
 
     return dx, dy
 
 
-def space_between():
+def space_between(bloat=False):
     """space between rooms of school"""
 
     # Gym-A, A-B, B-C
@@ -127,15 +151,35 @@ def space_between():
     # H2-D, D-E, E-F, F-G
     x = [1.5, 1.4, 1.4, 1.4]
 
+    if bloat:
+        y_b = [a*el for el in y]
+        x_b = [a*el for el in x]
+        x_b[0] = 0
+        x, y = x_b, y_b
+
     return x, y
 
 
-def translate():
+def update_ref(room):
+    x_right = room.c3[0]
+    y_top = room.c3[1]
+
+    x_left = room.c1[0]
+    y_bottom = room.c1[1]
+
+    return x_right, x_left, y_bottom, y_top
+
+
+def place_ss2(school_g=ss_2(), bloat=False):
+    """Place school rooms according to floorplan coordinates and delta origin"""
 
     # floorplan info
-    dx, dy = delta_origin()
-    spacex, spacey = space_between()
-    school_g = ss_gazebo()
+    dx, dy = delta_origin(bloat)
+    spacex, spacey = space_between(bloat)
+
+    dc = 1.8
+    if bloat:
+        dc = dc*1.1
 
     gym = school_g[1]
     h1 = school_g[2]
@@ -145,7 +189,7 @@ def translate():
     d, e, f, g = school_g[6], school_g[7], school_g[8], school_g[9]
     cafe = school_g[10]
 
-    gym.set_coordinates((dx, 0))
+    gym.set_coordinates((dx, dy))
 
     # nivel da gym
     x_right, x_left, y_bottom, y_top = update_ref(gym)
@@ -196,9 +240,10 @@ def translate():
     # hall 3
     c0 = (x_left-h3.dim[0], y_bottom)
     h3.set_coordinates(c0)
+    x_right, x_left, y_bottom, y_top = update_ref(h3)
 
     # cafe
-    c0 = (0.0, 33.0)
+    c0 = (x_left-cafe.dim[0], y_top-dc-cafe.dim[1])
     cafe.set_coordinates(c0)
     x_right, x_left, y_bottom, y_top = update_ref(cafe)
 
@@ -220,7 +265,40 @@ def translate():
     return school
 
 
+def save_coord_ss2():
+    """Create txt and save floor plan coordinates"""
+
+    # floorplan
+    school_g = ss_2()
+    # place in space (delta origin)
+    school = place_ss2(school_g)
+
+    coord_list = []
+    for k in school.keys():
+        room = school[k]
+        el = [room.label, room.c1, room.c2, room.c3, room.c4]
+
+        coord_list.append(el)
+
+    line1 = ["SS-2", "Gazebo Floorplan Coordinates"]
+    line2 = ["ID", "C1", "C2", "C3", "C4"]
+
+    ff.make_txt_str("School_Coordinates", coord_list, line1, line2)
+
+
+def build_school(bloat=False):
+    # floorplan
+    school_g = ss_2(bloat)
+    # place in space (delta origin)
+    school_block = place_ss2(school_g, bloat)
+    # merge halls for nice plotting
+    school = merge_hall(school_block)
+
+    return school
+
+
 def merge_hall(school_block):
+    """Merge H1, H2, H3 for nice plotting"""
 
     school = dict()
     h1 = school_block[2]
@@ -241,26 +319,6 @@ def merge_hall(school_block):
         school[room_id] = my_room
 
     return school
-
-
-def build_school():
-    school_block = translate()
-    school = merge_hall(school_block)
-
-    # TODO print in txt file
-    # ROOM c
-
-    return school
-
-
-def update_ref(room):
-    x_right = room.c3[0]
-    y_top = room.c3[1]
-
-    x_left = room.c1[0]
-    y_bottom = room.c1[1]
-
-    return x_right, x_left, y_bottom, y_top
 
 
 def house_hri():
@@ -331,10 +389,12 @@ def wall_nodes_connections(scenario: dict):
     return wall_nodes, wall_conn
 
 
-def plot_points_between_list(v_points, v_conn, color, style='.-'):
+def plot_points_between_list(v_points, v_conn, my_color='k', my_marker=None):
     """Plot points and their connections
     :param v_points = [(x1, y1), (x2, y2)...]
-    :param v_conn = [(0, 1), (1, 2)...]"""
+    :param v_conn = [(0, 1), (1, 2)...]
+    :param my_color
+    :param my_marker"""
 
     my_handle = None
     for wall_k in v_conn:
@@ -347,12 +407,12 @@ def plot_points_between_list(v_points, v_conn, color, style='.-'):
         px = [n0[0], n1[0]]
         py = [n0[1], n1[1]]
 
-        my_handle = plt.plot(px, py, color + style)
+        my_handle = plt.plot(px, py, color=my_color, marker=my_marker, linestyle='solid', markersize=4)
 
     return my_handle
 
 
-def plot_points(vertices: dict or list, color, style='o'):
+def plot_points(vertices: dict or list, my_color='k', my_marker='o', sizemarker=2):
     """Plot vertices from
      (dict) V[v] = (x,y)
      (list) V = [(x1, y1), (x2, y2)...]"""
@@ -363,19 +423,19 @@ def plot_points(vertices: dict or list, color, style='o'):
                 continue
             x = [vertices[k][0]]
             y = [vertices[k][1]]
-            plt.plot(x, y, color + style,  markersize=2)
+            plt.plot(x, y, color=my_color, marker=my_marker, markersize=sizemarker)
     elif isinstance(vertices, list):
         for v in vertices:
             x = v[0]
             y = v[1]
-            plt.plot(x, y, color + style, markersize=2)
+            plt.plot(x, y, color=my_color, marker=my_marker, markersize=sizemarker)
     else:
         print('Wrong input format, accepts dict or list')
 
     return None
 
 
-def save_plot(fig_name: str, folder='figs', my_ext='.pdf'):
+def save_plot(fig_name: str, folder='figs', my_ext='.png'):
 
     fig_path = ff.get_file_path(fig_name, folder, my_ext)
 
@@ -388,13 +448,14 @@ def save_plot(fig_name: str, folder='figs', my_ext='.pdf'):
     plt.show()
 
 
-def finish_plot(op='school', lgd=None):
+def finish_plot(op='all', lgd=None, my_ext='.png'):
+    """Add title and legend
+    Save plot as png"""
 
     fig_name = ''
-    my_ext = '.png'
     folder = 'figs'
 
-    if op == 'school':
+    if op == 'all':
         plt.title('School Scenario')
         fig_name = 'school_1'
         if lgd is not None:
@@ -407,72 +468,161 @@ def finish_plot(op='school', lgd=None):
                 robot = mlines.Line2D([], [], color='b', label=lgd[2])
                 my_hand.append(robot)
             plt.legend(handles=my_hand)
-    elif op == 'robot_only':
+
+    elif op == 'pose':
         plt.title('Robot Pose \n(non-aligned)')
         fig_name = 'robotpose_1'
         if lgd is not None:
-            robot = mlines.Line2D([], [], color='b', label=lgd[2])
+            robot = mlines.Line2D([], [], color='b', label=lgd[0])
             plt.legend(handles=[robot])
+
+    elif op == 'school':
+        plt.title('School Floorplan')
+        fig_name = 'floorplan'
+
+    elif op == 'graph':
+        plt.title('School Graph')
+        fig_name = 'graph'
+
+    elif op == 'both':
+        plt.title('School Floorplan')
+        fig_name = 'bloated_school'
+        if lgd is not None:
+            gazebo = mlines.Line2D([], [], color='gray', label=lgd[0])
+            bloat = mlines.Line2D([], [], color='k', label=lgd[1])
+            plt.legend(handles=[gazebo, bloat])
+
+    elif op == 'mis':
+        plt.title('School Floorplan')
+        fig_name = 'school_aligned'
+        if lgd is not None:
+            origin = mlines.Line2D([], [], color='gray', label=lgd[0])
+            school = mlines.Line2D([], [], color='k', label=lgd[1])
+            robot = mlines.Line2D([], [], color='b', label=lgd[2])
+            robot0 = mlines.Line2D([], [], color='c', label=lgd[4])
+            pt = mlines.Line2D([], [], color='r', label=lgd[3])
+            plt.legend(handles=[origin, school, robot, robot0, pt])
 
     save_plot(fig_name, folder, my_ext)
 
 
-def plot_school():
+def plot_all():
     """plot school scenario from DISC"""
 
-    # set up scenario
-    school = ss_1()
+    # SCHOOL
+    plot_ss2()
 
-    # school floor plan
-    wall_nodes, wall_conn = wall_nodes_connections(school)
-    # plot floor plan
-    plot_points_between_list(wall_nodes, wall_conn, 'k', '-')
+    # GRAPH
+    plot_graph()
 
+    # POSE
+    plot_pose()
+
+    lgd = ['Floorplan', 'Graph', 'Robot']
+
+    finish_plot('all', lgd)
+
+
+def plot_pose(f_name=None, finish=False, color='b-'):
+    """Plot robot pose as extracted from csv file"""
+
+    if f_name is None:
+        # get pose info
+        RPose = ff.get_info('School_RPose', 'R')
+    else:
+        RPose = f_name
+
+    R_x = [el[0] for el in RPose]
+    R_y = [el[1] for el in RPose]
+    plt.plot(R_x, R_y, color)
+
+    if finish:
+        finish_plot("pose", ['Robot'])
+
+
+def plot_graph(f_name=None, finish=False):
+    """Plot graph"""
+    # GRAPH
     # get graph info
-    f_name = ['School_VGraph', 'School_EGraph', 'School_RPose']
+    if f_name is None:
+        f_name = ['School_VGraph', 'School_EGraph']
+
     V = ff.get_info(f_name[0], 'V')
     E = ff.get_info(f_name[1], 'E')
 
+    # organize as list
     E_plot = []
     for el in E:
         v1 = el[0] - 1
         v2 = el[1] - 1
         E_plot.append((v1, v2))
+    plot_points_between_list(V, E_plot, 'm', 'o')
 
-    plot_points_between_list(V, E_plot, 'm', '.-')
-
-    lgd = ['Floorplan', 'Graph']#, 'Robot']
-
-    finish_plot('school', lgd)
+    if finish:
+        finish_plot('graph')
 
 
-def plot_pose():
-    # get graph info
-    f_name = ['School_VGraph', 'School_EGraph', 'School_RPose']
-    RPose = ff.get_info(f_name[2], 'R')
-    R_x = [el[0] for el in RPose]
-    R_y = [el[1] for el in RPose]
-    plt.plot(R_x, R_y, 'b-')
-
-    lgd = ['Floorplan', 'Graph', 'Robot']
-
-    finish_plot('robot_only', lgd)
-
-
-def plot_school_gazebo():
+def plot_ss2(bloat=False, finish=False):
+    """Plot school scenario (floorplan only)"""
     # set up scenario
-    school = build_school()
-
+    school = build_school(bloat)
     # school floor plan
     wall_nodes, wall_conn = wall_nodes_connections(school)
+    color = 'gray'
+    if bloat:
+        color = 'k'
     # plot floor plan
-    plot_points_between_list(wall_nodes, wall_conn, 'k', '-')
+    plot_points_between_list(wall_nodes, wall_conn, color)
 
-    save_plot('gazebo_env%d' % 5)
+    if finish:
+        finish_plot('school')
+
+    return school
+
+
+def align_pose_school():
+
+    # frame details - robot entering gym
+    # visual: 1032, (4.85, -15.29)
+    pose_raw = ff.get_info('School_RPose', 'R')
+    frame_number = 1040
+    xy_frame = pose_raw[frame_number]
+
+    # SCHOOL
+    bloat = True
+    school = plot_ss2(bloat, False)
+    # floorplan detail - gym door
+    xy_door = (school[1].c1[0], school[1].c1[1] + a*(2+0.9)+0.5)
+    # and robot POSE
+    plot_pose(pose_raw, False, 'c')
+    # plot intersection points
+    pts = [xy_frame, xy_door]
+    plot_points_between_list(pts, [(0, 1)], 'r', 'o')
+
+    # translate
+    delta = (round(xy_door[0] - xy_frame[0], 2), round(xy_door[1] - xy_frame[1], 2))
+    print(delta)
+    pose2 = ff.trans_pose(delta)
+    origin = [(0, 0), (-50, 0), (60, 0), (0, -20), (0, 60)]
+    or_conn = [(0, 1), (0, 2), (0, 3), (0, 4)]
+
+    plot_pose(pose2, False, 'blue')
+    plot_points_between_list(origin, or_conn, 'gray')
+
+    # plot_graph()
+    lgd = ['Origin', 'School', 'Robot', 'Matching Point', 'Robot (raw)']
+    finish_plot('mis', lgd)
+
+
+def plot_both_ss2():
+
+    plot_ss2(False, False)
+
+    plot_ss2(True, False)
+
+    finish_plot('both', ['Gazebo', 'Original'])
 
 
 if __name__ == '__main__':
-    # plot_school()
-    # plot_pose()
-    # translate()
-    plot_school_gazebo()
+    align_pose_school()
+    # plot_both_ss2()
