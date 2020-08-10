@@ -91,8 +91,8 @@ def ss_2(bloat=False):
         dim_b[7] = (a * (7.9 + 1.6), a * 5.5)
         dim_b[8] = (a * (7.9 + 1.6), a * 5.5)
         dim_b[9] = (a * (7.9 + 1.6), a * 5.5)
-        dim_b[10] = (a * (10+1), (a * 17) + 4.5)
-        dim = dim_b
+        dim_b[10] = (a * (10+1.5), (a * 17) + 4.5)
+        dim = [(round(el[0], 2), round(el[1], 2)) for el in dim_b]
 
     school = ext.create_dict(room_list, None)
 
@@ -265,27 +265,33 @@ def place_ss2(school_g=ss_2(), bloat=False):
     return school
 
 
-def save_coord_ss2():
-    """Create txt and save floor plan coordinates"""
-
-    bloat = True
+def save_coord_ss2(bloat=False):
+    """Create txt and save floor plan coordinates
+    :param bloat : True for original size (1:1), False for Gazebo size (1:1.1)
+    """
 
     # floorplan
-    school_g = ss_2(bloat)
+    school_1 = ss_2(bloat)
     # place in space (delta origin)
-    school = place_ss2(school_g, bloat)
+    school = place_ss2(school_1, bloat)
 
     coord_list = []
     for k in school.keys():
         room = school[k]
-        el = [room.label, room.c1, room.c2, room.c3, room.c4]
+        el = [room.label, room.c1, room.c2, room.c3, room.c4, room.dim]
 
         coord_list.append(el)
 
-    line1 = ["SS-2", "Gazebo Floorplan Coordinates"]
-    line2 = ["ID", "C1", "C2", "C3", "C4"]
+    if bloat:
+        line1 = ["SS-2", "Floorplan Coordinates - Images"]
+        f_name = "School_Image_Coordinates"
+    else:
+        line1 = ["SS-2", "Floorplan Coordinates - Gazebo"]
+        f_name = "School_Gazebo_Coordinates"
 
-    ff.make_txt_str("School_Coordinates_Bloat", coord_list, line1, line2)
+    line2 = ["ID", "C1", "C2", "C3", "C4", "DIM"]
+
+    ff.make_txt_str(f_name, coord_list, line1, line2)
 
 
 def build_school(bloat=False):
@@ -359,7 +365,6 @@ def house_hri():
     return house
 
 
-# ----------------------------------------------------------------------------------
 def wall_nodes_connections(scenario: dict):
     """Loop through scenario and add nodes and connections to lists
     :param scenario : dictionary of rooms (class)
@@ -391,6 +396,8 @@ def wall_nodes_connections(scenario: dict):
     return wall_nodes, wall_conn
 
 
+# ----------------------------------------------------------------------------------
+# PLOT STUFF
 def plot_points_between_list(v_points, v_conn, my_color='k', my_marker=None):
     """Plot points and their connections
     :param v_points = [(x1, y1), (x2, y2)...]
@@ -457,9 +464,13 @@ def finish_plot(op='all', lgd=None, my_ext='.png'):
     fig_name = ''
     folder = 'figs'
 
-    if op == 'all':
-        plt.title('School Scenario')
-        fig_name = 'school_1'
+    if 'all' in op:
+        if 'gazebo' in op:
+            plt.title('Gazebo School Scenario')
+            fig_name = 'school_gazebo'
+        else:
+            plt.title('School Scenario')
+            fig_name = 'school_bloat'
         if lgd is not None:
             my_hand = []
             if len(lgd) >= 2:
@@ -496,7 +507,7 @@ def finish_plot(op='all', lgd=None, my_ext='.png'):
 
     elif op == 'mis':
         plt.title('School Floorplan')
-        fig_name = 'school_aligned'
+        fig_name = 'school_aligning'
         if lgd is not None:
             origin = mlines.Line2D([], [], color='gray', label=lgd[0])
             school = mlines.Line2D([], [], color='k', label=lgd[1])
@@ -505,24 +516,39 @@ def finish_plot(op='all', lgd=None, my_ext='.png'):
             pt = mlines.Line2D([], [], color='r', label=lgd[3])
             plt.legend(handles=[origin, school, robot, robot0, pt])
 
+    elif op == 'align':
+        plt.title('School Floorplan\n[from robot pose 1:1]')
+        fig_name = 'school_aligned'
+        if lgd is not None:
+            school = mlines.Line2D([], [], color='k', label=lgd[0])
+            robot = mlines.Line2D([], [], color='b', label=lgd[1])
+            plt.legend(handles=[school, robot])
+
     save_plot(fig_name, folder, my_ext)
 
 
-def plot_all():
+def plot_all(bloat=False):
     """plot school scenario from DISC"""
 
     # SCHOOL
-    plot_ss2()
+    plot_ss2(bloat)
 
     # GRAPH
-    plot_graph()
+    numbers = True
+    edges = True
+    plot_graph(bloat, numbers, edges)
 
     # POSE
-    plot_pose()
+    # plot_pose()
+    lgd = ['Floorplan', 'Graph']
 
-    lgd = ['Floorplan', 'Graph', 'Robot']
+    if bloat:
+        op = 'all'
+        lgd.append('Robot Pose')
+    else:
+        op = 'all_gazebo'
 
-    finish_plot('all', lgd)
+    finish_plot(op, lgd)
 
 
 def plot_pose(f_name=None, finish=False, color='b-'):
@@ -542,39 +568,53 @@ def plot_pose(f_name=None, finish=False, color='b-'):
         finish_plot("pose", ['Robot'])
 
 
-def plot_graph(f_name=None, finish=False):
-    """Plot graph"""
+def plot_graph(bloat=False, number=False, edges=True, finish=False):
+    """Plot graph (not numbered)"""
     # GRAPH
     # get graph info
-    if f_name is None:
-        f_name = ['School_VGraph', 'School_EGraph']
-
+    if bloat:
+        f_name = ['School_Image_VGraph', 'School_Image_EGraph']
+    else:
+        f_name = ['School_Gazebo_VGraph', 'School_Gazebo_EGraph']
+    # retrieve vertices and edges
     V = ff.get_info(f_name[0], 'V')
     E = ff.get_info(f_name[1], 'E')
 
-    # organize as list
-    E_plot = []
-    for el in E:
-        v1 = el[0] - 1
-        v2 = el[1] - 1
-        E_plot.append((v1, v2))
-    plot_points_between_list(V, E_plot, 'm', 'o')
+    my_color = 'm'
+
+    if edges:
+        # organize edges as list with python index (0...n-1)
+        E_plot = []
+        for el in E:
+            v1 = el[0] - 1
+            v2 = el[1] - 1
+            E_plot.append((v1, v2))
+        plot_points_between_list(V, E_plot, my_color, 'o')
+    else:
+        plot_points(V, my_color)
+
+    if number:
+        # plot index + 1 at v coordinates +- offset
+        for coord in V:
+            i = V.index(coord) + 1
+            x = coord[0] + 0.5
+            y = coord[1] + 0.75
+            plt.text(x, y, str(i), fontsize=8, color=my_color)
 
     if finish:
+
         finish_plot('graph')
 
 
-def plot_ss2(bloat=False, finish=False):
+def plot_ss2(bloat=False, finish=False, my_color='k'):
     """Plot school scenario (floorplan only)"""
     # set up scenario
     school = build_school(bloat)
     # school floor plan
     wall_nodes, wall_conn = wall_nodes_connections(school)
-    color = 'gray'
-    if bloat:
-        color = 'k'
+
     # plot floor plan
-    plot_points_between_list(wall_nodes, wall_conn, color)
+    plot_points_between_list(wall_nodes, wall_conn, my_color)
 
     if finish:
         finish_plot('school')
@@ -605,6 +645,9 @@ def align_pose_school():
     delta = (round(xy_door[0] - xy_frame[0], 2), round(xy_door[1] - xy_frame[1], 2))
     print(delta)
     pose2 = ff.trans_pose(delta)
+    # save pose translated
+    ff.make_txt('School_RPose_Translated', pose2, ['SS-2', 'Robot Pose Translated'], ["ID", 'x', 'y'])
+
     origin = [(0, 0), (-50, 0), (60, 0), (0, -20), (0, 60)]
     or_conn = [(0, 1), (0, 2), (0, 3), (0, 4)]
 
@@ -616,9 +659,22 @@ def align_pose_school():
     finish_plot('mis', lgd)
 
 
+def plot_floor_pose_graph():
+    """Plot bloated school with robot's motion"""
+
+    # School
+    bloat = True
+    school = plot_ss2(bloat, False)
+    pose_trans = ff.get_info('School_RPose_Translated', 'R')
+    plot_pose(pose_trans, False, 'blue')
+
+    lgd = ['School', 'Robot Pose']
+    finish_plot('align', lgd)
+
+
 def plot_both_ss2():
 
-    plot_ss2(False, False)
+    plot_ss2(False, False, 'gray')
 
     plot_ss2(True, False)
 
@@ -626,6 +682,11 @@ def plot_both_ss2():
 
 
 if __name__ == '__main__':
+    # plot_bloat_school_pose()
     # align_pose_school()
     # plot_both_ss2()
-    save_coord_ss2()
+    # save_coord_ss2(True)
+    #
+    plot_all()
+
+    # save_coord_ss2(True)

@@ -78,90 +78,92 @@ def read_file(file_path: str, key=' '):
     return data
 
 
-def manual_ss_edges(n=53):
+def manual_ss_edges(version=1):
     """School graph vertices connections (edges)
     edges = [(u, v), .... ]
     Note: index range 1,...n"""
 
-    V = list(range(n))
-
     edges_ = []
-
-    # cafeteria
-    edges_ = adj_nodes(edges_, 0, 3)
-    edges_ = adj_nodes(edges_, 3, 9)
-    edges_.append((2, 5))
-    edges_.append((0, 3))
-    edges_.append((1, 4))
-
-    # hall 3
-    edges_.append((7, 9))
-    edges_.append((8, 6))
-    edges_ = adj_nodes(edges_, 9, 13)
-
-    # room G
-    edges_.append((13, 14))
-    edges_.append((13, 15))
-    edges_.append((14, 16))
-    edges_.append((16, 15))
-    edges_.append((15, 12))
-
-    # hall 2
-    edges_.append((12, 17))
-    edges_.append((17, 18))
-    edges_.append((23, 24))
-    edges_.append((24, 29))
-    edges_.append((24, 18))
-    edges_.append((29, 30))
-
-    # room F
-    edges_.append((18, 21))
-    edges_.append((22, 21))
-    edges_.append((22, 20))
-    edges_.append((19, 20))
-    edges_.append((19, 21))
-
-    # room E
-    edges_.append((25, 26))
-    edges_.append((27, 28))
-    edges_.append((26, 28))
-    edges_.append((25, 27))
-    edges_.append((24, 27))
-
-    # room D
-    edges_.append((33, 30))
-    edges_.append((34, 32))
-    edges_.append((32, 31))
-    edges_.append((33, 34))
-    edges_.append((33, 31))
-
-    # hall 1
-    edges_.append((30, 35))
-    edges_.append((35, 36))
-    edges_.append((35, 37))
-    edges_.append((38, 37))
-    edges_.append((39, 37))
-    edges_.append((39, 40))
-
-    # gym
-    edges_ = adj_nodes(edges_, 41, 45)
-    edges_ = adj_nodes(edges_, 45, 49)
-    edges_ = adj_nodes(edges_, 49, 53)
-    edges_.append((41, 45))
-    edges_.append((49, 45))
-    edges_.append((42, 46))
-    edges_.append((50, 46))
-    edges_.append((51, 47))
-    edges_.append((43, 47))
-    edges_.append((44, 48))
-    edges_.append((52, 48))
-    edges_.append((52, 39))
-
     edges = []
-    for el in edges_:
-        v1 = el[0] + 1
-        v2 = el[1] + 1
-        edges.append((v1, v2))
+
+    if version == 1:
+        # cafeteria
+        edges_ = adj_nodes(edges_, 0, 3)
+        edges_ = adj_nodes(edges_, 3, 9)
+        edges_.append((2, 5))
+        edges_.append((0, 3))
+        edges_.append((1, 4))
+
+        # hall 3
+        edges_.append((7, 9))
+        edges_.append((8, 6))
+        edges_ = adj_nodes(edges_, 9, 13)
+
+        # room G
+        edges_.append((13, 14))
+        edges_.append((13, 15))
+        edges_.append((14, 16))
+        edges_.append((16, 15))
+        edges_.append((15, 12))
+
+        # hall 2
+        edges_.append((12, 17))
+        edges_.append((17, 18))
+        edges_.append((23, 24))
+        edges_.append((24, 29))
+        edges_.append((24, 18))
+        edges_.append((29, 30))
+
+        # room F
+        edges_.append((18, 21))
+        edges_.append((22, 21))
+        edges_.append((22, 20))
+        edges_.append((19, 20))
+        edges_.append((19, 21))
+
+        # room E
+        edges_.append((25, 26))
+        edges_.append((27, 28))
+        edges_.append((26, 28))
+        edges_.append((25, 27))
+        edges_.append((24, 27))
+
+        # room D
+        edges_.append((33, 30))
+        edges_.append((34, 32))
+        edges_.append((32, 31))
+        edges_.append((33, 34))
+        edges_.append((33, 31))
+
+        # hall 1
+        edges_.append((30, 35))
+        edges_.append((35, 36))
+        edges_.append((35, 37))
+        edges_.append((38, 37))
+        edges_.append((39, 37))
+        edges_.append((39, 40))
+
+        # gym
+        edges_ = adj_nodes(edges_, 41, 45)
+        edges_ = adj_nodes(edges_, 45, 49)
+        edges_ = adj_nodes(edges_, 49, 53)
+        edges_.append((41, 45))
+        edges_.append((49, 45))
+        edges_.append((42, 46))
+        edges_.append((50, 46))
+        edges_.append((51, 47))
+        edges_.append((43, 47))
+        edges_.append((44, 48))
+        edges_.append((52, 48))
+        edges_.append((52, 39))
+
+        edges = []
+        for el in edges_:
+            v1 = el[0] + 1
+            v2 = el[1] + 1
+            edges.append((v1, v2))
+
+    # elif version == 2:
 
     return edges, edges_
 
@@ -201,7 +203,7 @@ def make_txt_edges():
     line2 = ['ID', 'v1', 'v2']
     line_f = '{0:3d} {1:2d} {2:2d} \n'
 
-    make_txt('School_EGraph', edges, line1, line2, line_f)
+    make_txt('School_Gazebo_EGraph', edges, line1, line2, line_f)
 
 
 def make_txt_pose():
@@ -216,6 +218,13 @@ def make_txt_pose():
 
 
 def make_txt(file_name: str, my_list: list, line1: list, line2: list, line_f='{0:3d} {1:8.4f} {2:8.4f} \n'):
+    """
+    :param file_name : name without extension (assumes txt)
+    :param my_list : list of things to print
+    :param line1 : title
+    :param line2 : subtitle
+    :param line_f : format has to match elements in my_list"""
+
     f_path = get_file_path(file_name)
     f = open(f_path, 'w+')
 
@@ -239,13 +248,13 @@ def make_txt(file_name: str, my_list: list, line1: list, line2: list, line_f='{0
     return
 
 
-def make_txt_str(file_name: str, my_list: list, line1: list, line2: list, line_f='{0:4s} {1:8s} {2:8s} {3:8s} {4:8s} \n'):
+def make_txt_str(file_name: str, my_list: list, line1: list, line2: list, line_f='{0:4s} {1:8s} {2:8s} {3:8s} {4:8s} {5:8s}\n'):
 
     f_path = get_file_path(file_name)
     f = open(f_path, 'w+')
 
     line1 = '{0:4s} {1:8s} \n'.format(line1[0], line1[1])
-    line2 = '{0:4s} {1:8s} {2:8s} {3:8s} {4:8s} \n'.format(line2[0], line2[1], line2[2], line2[3], line2[4])
+    line2 = '{0:4s} {1:8s} {2:8s} {3:8s} {4:8s} {5:8s} \n'.format(line2[0], line2[1], line2[2], line2[3], line2[4], line2[5])
     f.write(line1)
     f.write(line2)
 
@@ -255,8 +264,9 @@ def make_txt_str(file_name: str, my_list: list, line1: list, line2: list, line_f
         c2 = str(el[2])
         c3 = str(el[3])
         c4 = str(el[4])
+        dim = str(el[5])
 
-        my_text = line_f.format(name, c1, c2, c3, c4)
+        my_text = line_f.format(name, c1, c2, c3, c4, dim)
         f.write(my_text)
 
     f.close()
@@ -298,6 +308,25 @@ def get_vertices(name_file, parent_folder='txt_files'):
     V = as_list(V_dict)
 
     return V
+
+
+def order_vertices(name_file):
+    """Re-order vertices so it's GYM - H1 - ABC - H2 - DEFG - H3 - Cafe"""
+    V_raw = get_vertices(name_file, parent_folder='txt_files')
+
+    V = [v for v in reversed(V_raw)]
+
+    # save as txt file
+    if 'Gazebo' in name_file:
+        f_name = 'School_Gazebo_VGraph'
+        line1 = ['SS-2', 'Gazebo Graph Coordinates']
+    else:
+        f_name = 'School_Image_VGraph'
+        line1 = ['SS-2', 'Image Graph Coordinates']
+    line2 = ['ID', 'X', 'Y']
+    make_txt(f_name, V, line1, line2)
+
+    return
 
 
 def get_edges(name_file, parent_folder='txt_files'):
@@ -345,6 +374,7 @@ def trans_pose(delta: tuple):
 if __name__ == '__main__':
     # make_txt_edges()
     # make_txt_pose()
-    trans_pose((0, 0))
+    # trans_pose((0, 0))
+    order_vertices('School_Gazebo_VGraph_v2')
 
 
