@@ -10,7 +10,8 @@ plt.rcParams.update({'text.usetex': True})
 plt.rcParams.update({'font.family': 'serif'})
 
 
-a = 1.1
+a_x = 1.1
+
 
 # scenarios
 def ss_1():
@@ -70,7 +71,7 @@ def ss_1():
     return school
 
 
-def ss_2(bloat=False):
+def ss_2(bloat=False, adjusted=True):
     """Parameters of the School Scenario [floor plan, no origin]
         MyRoom(label, dim, c0=None, door=None)
         label: str
@@ -85,13 +86,16 @@ def ss_2(bloat=False):
            (7.9, 5.5), (7.9, 5.5), (7.9, 5.5), (7.9, 5.5), (10, 17), (60-10, 3.9), (10, 8.3)]
 
     if bloat:
-        dim_b = [(a * el[0], a * el[1]) for el in dim]
-        # manual corrections
-        dim_b[6] = (a * (7.9 + 1.6), a * 5.5)
-        dim_b[7] = (a * (7.9 + 1.6), a * 5.5)
-        dim_b[8] = (a * (7.9 + 1.6), a * 5.5)
-        dim_b[9] = (a * (7.9 + 1.6), a * 5.5)
-        dim_b[10] = (a * (10+1.5), (a * 17) + 4.5)
+        dim_b = [(a_x * el[0], a_x * el[1]) for el in dim]
+
+        if adjusted:
+            # manual corrections
+            dim_b[6] = (a_x * (7.9 + 1.6), a_x * 5.5)
+            dim_b[7] = (a_x * (7.9 + 1.6), a_x * 5.5)
+            dim_b[8] = (a_x * (7.9 + 1.6), a_x * 5.5)
+            dim_b[9] = (a_x * (7.9 + 1.6), a_x * 5.5)
+            dim_b[10] = (a_x * (10 + 1.5), (a_x * 17) + 4.5)
+
         dim = [(round(el[0], 2), round(el[1], 2)) for el in dim_b]
 
     school = ext.create_dict(room_list, None)
@@ -132,13 +136,8 @@ def delta_origin(bloat=False):
     x_gym = 17
     y_cafe = 1.8
 
-    if bloat:
-        dx = 53 # 5.5
-        dy = 0 #-19
-    else:
-        # how did I find this out?
-        dy = 0
-        dx = x_cafe + x_hall - x_gym
+    dx = x_cafe + x_hall - x_gym
+    dy = 0
 
     return dx, dy
 
@@ -152,8 +151,8 @@ def space_between(bloat=False):
     x = [1.5, 1.4, 1.4, 1.4]
 
     if bloat:
-        y_b = [a*el for el in y]
-        x_b = [a*el for el in x]
+        y_b = [a_x * el for el in y]
+        x_b = [a_x * el for el in x]
         x_b[0] = 0
         x, y = x_b, y_b
 
@@ -179,7 +178,7 @@ def place_ss2(school_g=ss_2(), bloat=False):
 
     dc = 1.8
     if bloat:
-        dc = dc*1.1
+        dc = dc * a_x
 
     gym = school_g[1]
     h1 = school_g[2]
@@ -294,9 +293,9 @@ def save_coord_ss2(bloat=False):
     ff.make_txt_str(f_name, coord_list, line1, line2)
 
 
-def build_school(bloat=False):
+def build_school(bloat=False, adjusted=False):
     # floorplan
-    school_g = ss_2(bloat)
+    school_g = ss_2(bloat, adjusted)
     # place in space (delta origin)
     school_block = place_ss2(school_g, bloat)
     # merge halls for nice plotting
@@ -498,15 +497,16 @@ def finish_plot(op='all', lgd=None, my_ext='.png'):
         fig_name = 'graph'
 
     elif op == 'both':
-        plt.title('School Floorplan')
+        plt.title('School Floorplans')
         fig_name = 'bloated_school'
         if lgd is not None:
-            gazebo = mlines.Line2D([], [], color='gray', label=lgd[0])
-            bloat = mlines.Line2D([], [], color='k', label=lgd[1])
-            plt.legend(handles=[gazebo, bloat])
+            gazebo = mlines.Line2D([], [], color='teal', label=lgd[0])
+            bloat = mlines.Line2D([], [], color='silver', label=lgd[1])
+            adjusted = mlines.Line2D([], [], color='k', label=lgd[2])
+            plt.legend(handles=[gazebo, bloat, adjusted])
 
     elif op == 'mis':
-        plt.title('School Floorplan')
+        plt.title('School Positioning')
         fig_name = 'school_aligning'
         if lgd is not None:
             origin = mlines.Line2D([], [], color='gray', label=lgd[0])
@@ -514,7 +514,7 @@ def finish_plot(op='all', lgd=None, my_ext='.png'):
             robot = mlines.Line2D([], [], color='b', label=lgd[2])
             robot0 = mlines.Line2D([], [], color='c', label=lgd[4])
             pt = mlines.Line2D([], [], color='r', label=lgd[3])
-            plt.legend(handles=[origin, school, robot, robot0, pt])
+            plt.legend(handles=[origin, school, robot, robot0, pt], loc=3)
 
     elif op == 'align':
         plt.title('School Floorplan\n[from robot pose 1:1]')
@@ -523,6 +523,13 @@ def finish_plot(op='all', lgd=None, my_ext='.png'):
             school = mlines.Line2D([], [], color='k', label=lgd[0])
             robot = mlines.Line2D([], [], color='b', label=lgd[1])
             plt.legend(handles=[school, robot])
+
+    elif op == 'pose_school':
+        plt.title('School Floorplan')
+        fig_name = 'school_pose'
+        school = mlines.Line2D([], [], color='k', label=lgd[0])
+        robot = mlines.Line2D([], [], color='b', label=lgd[1])
+        plt.legend(handles=[school, robot])
 
     save_plot(fig_name, folder, my_ext)
 
@@ -538,25 +545,26 @@ def plot_all(bloat=False):
     edges = True
     plot_graph(bloat, numbers, edges)
 
-    # POSE
-    # plot_pose()
     lgd = ['Floorplan', 'Graph']
 
     if bloat:
-        op = 'all'
+        # POSE
+        f_name = 'School_RPose_Translated'
+        plot_pose(f_name)
         lgd.append('Robot Pose')
+        op = 'all'
     else:
         op = 'all_gazebo'
 
     finish_plot(op, lgd)
 
 
-def plot_pose(f_name=None, finish=False, color='b-'):
+def plot_pose(f_name='School_RPose', finish=False, color='b-'):
     """Plot robot pose as extracted from csv file"""
 
-    if f_name is None:
+    if isinstance(f_name, str):
         # get pose info
-        RPose = ff.get_info('School_RPose', 'R')
+        RPose = ff.get_info(f_name, 'R')
     else:
         RPose = f_name
 
@@ -606,20 +614,29 @@ def plot_graph(bloat=False, number=False, edges=True, finish=False):
         finish_plot('graph')
 
 
-def plot_ss2(bloat=False, finish=False, my_color='k'):
+def plot_ss2(bloat=False, adjusted=True, my_color='k'):
     """Plot school scenario (floorplan only)"""
     # set up scenario
-    school = build_school(bloat)
+    school = build_school(bloat, adjusted)
     # school floor plan
     wall_nodes, wall_conn = wall_nodes_connections(school)
 
     # plot floor plan
     plot_points_between_list(wall_nodes, wall_conn, my_color)
 
-    if finish:
-        finish_plot('school')
-
     return school
+
+
+def plot_mismatch():
+    # gazebo
+    plot_ss2()
+    # translated pose
+    f_name = 'School_RPose_Translated'
+    plot_pose(f_name)
+
+    op = 'pose_school'
+    lgd = ['Gazebo', 'Robot']
+    finish_plot(op, lgd)
 
 
 def align_pose_school():
@@ -632,9 +649,9 @@ def align_pose_school():
 
     # SCHOOL
     bloat = True
-    school = plot_ss2(bloat, False)
+    school = plot_ss2(bloat)
     # floorplan detail - gym door
-    xy_door = (school[1].c1[0], school[1].c1[1] + a*(2+0.9)+0.5)
+    xy_door = (school[1].c1[0], school[1].c1[1] + a_x * (2 + 0.9) + 0.5)
     # and robot POSE
     plot_pose(pose_raw, False, 'c')
     # plot intersection points
@@ -659,26 +676,95 @@ def align_pose_school():
     finish_plot('mis', lgd)
 
 
-def plot_floor_pose_graph():
-    """Plot bloated school with robot's motion"""
-
-    # School
-    bloat = True
-    school = plot_ss2(bloat, False)
-    pose_trans = ff.get_info('School_RPose_Translated', 'R')
-    plot_pose(pose_trans, False, 'blue')
-
-    lgd = ['School', 'Robot Pose']
-    finish_plot('align', lgd)
-
-
 def plot_both_ss2():
 
-    plot_ss2(False, False, 'gray')
+    plot_ss2(False, False, 'teal')
 
-    plot_ss2(True, False)
+    plot_ss2(True, False, 'silver')
 
-    finish_plot('both', ['Gazebo', 'Original'])
+    plot_ss2(True, True, 'black')
+
+    finish_plot('both', ['Gazebo', 'Bloated', 'Adjusted'])
+
+
+def compute_for_mesh():
+
+    school = place_ss2()
+
+    dc = 1.8
+
+    gym = school[1]
+    h1 = school[2]
+    h2 = school[11]
+    h3 = school[12]
+    a, b, c = school[3], school[4], school[5]
+    d, e, f, g = school[6], school[7], school[8], school[9]
+    cafe = school[10]
+
+    print('cafe dimensions: %s' % str(cafe.dim))
+    print('Hall 3 dimensions: %s' % str(h3.dim))
+    # slide h3 wrt cafe
+    dy_up = cafe.dim[1] + dc - h3.dim[1]
+    door_cafe = h2.dim[1]/2
+    print('Attach cafe-h3: %s, %s' %(str(dy_up), str(door_cafe)))
+
+    # stairs
+    print('H2A dimensions (%s, %s)' % (str(h2.dim[1]), str(12.0)))
+    print('H2A attach (%s, %s)' % (str(0.0), str(h2.dim[1]/2)))
+
+    # classrooms G-F
+    h2G_x = round(f.c1[0]-g.c1[0], 2)
+    h2G_y = h2.dim[1]
+    print('H2G dimensions (%s, %s)' % (str(h2G_x), str(h2G_y)))
+
+    # classrooms F-E
+    h2F_x = round(e.c1[0]-f.c1[0], 2)
+    h2F_y = h2.dim[1]
+    print('H2F dimensions (%s, %s)' % (str(h2F_x), str(h2F_y)))
+    print('H2F dimensions (%s, %s)' % (str(h2F_x), str(h2F_y)))
+
+    # classrooms E-D
+    h2E_x = round(d.c1[0]-e.c1[0], 2)
+    h2E_y = h2.dim[1]
+    print('H2E dimensions (%s, %s)' % (str(h2E_x), str(h2E_y)))
+
+    # classrooms D-end
+    h2D_x = round(h2.c3[0] - d.c1[0], 2)
+    h2D_y = h2.dim[1]
+    print('H2D dimensions (%s, %s)' % (str(h2D_x), str(h2D_y)))
+
+    h2G_door = round(g.dim[0] - 0.8, 2)
+    h2G_D = d.dim
+    print('G-D dimensions: %s' % str(h2G_D))
+    print('H2G door %s' % str(h2G_door))
+
+    # H1
+    h1_h2D = h2D_x - h1.dim[0]
+    print('Attach H1-H2 %s' % str(h1_h2D))
+
+    # room C
+    h1C_x = h1.dim[0]
+    h1C_y = round(h1.c2[1]-c.c1[1], 2)
+    print('H1C dimensions (%s, %s)' % (str(h1C_x), str(h1C_y)))
+    h1C_door = c.dim[1]-1.05
+    print('H1C door %s' % str(h1C_door))
+
+    # room B
+    h1B_x = h1.dim[0]
+    h1B_y = round(c.c1[1] - b.c1[1], 2)
+    print('H1B dimensions (%s, %s)' % (str(h1B_x), str(h1B_y)))
+
+    # room B
+    h1A_x = h1.dim[0]
+    h1A_y = round(b.c1[1] - gym.c2[1], 2)
+    print('H1A dimensions (%s, %s)' % (str(h1A_x), str(h1A_y)))
+    h1A_att = round(a.c1[1]-gym.c2[1],2)
+    print('H1-A attach %s' % str(h1A_att))
+
+    # rooms A-B-C
+    print('Rooms A-B-C dimensions %s' % str(b.dim))
+
+    plot_all()
 
 
 if __name__ == '__main__':
@@ -687,6 +773,9 @@ if __name__ == '__main__':
     # plot_both_ss2()
     # save_coord_ss2(True)
     #
-    plot_all()
+    compute_for_mesh()
+    # align_pose_school()
+    # plot_mismatch()
+    # plot_both_ss2()
 
     # save_coord_ss2(True)

@@ -29,7 +29,7 @@ def test_dimensions():
     spacex, spacey = mg.space_between()
 
     assert dx == 53
-    assert dy == 33
+    assert dy == 0
     assert spacex == [1.5, 1.4, 1.4, 1.4]
     assert spacey == [1.2, 0.6, 0.6]
 
