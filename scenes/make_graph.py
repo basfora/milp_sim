@@ -689,9 +689,14 @@ def plot_both_ss2():
 
 def compute_for_mesh():
 
-    school = place_ss2()
+    bloat = True
+    school_ = ss_2(bloat)
+
+    school = place_ss2(school_, bloat)
 
     dc = 1.8
+    if bloat:
+        dc = dc * a_x
 
     gym = school[1]
     h1 = school[2]
@@ -701,70 +706,80 @@ def compute_for_mesh():
     d, e, f, g = school[6], school[7], school[8], school[9]
     cafe = school[10]
 
+    print('xo, yo = %s' % str(cafe.c1))
+
     print('cafe dimensions: %s' % str(cafe.dim))
     print('Hall 3 dimensions: %s' % str(h3.dim))
     # slide h3 wrt cafe
-    dy_up = cafe.dim[1] + dc - h3.dim[1]
-    door_cafe = h2.dim[1]/2
-    print('Attach cafe-h3: %s, %s' %(str(dy_up), str(door_cafe)))
+    dy_up = round(cafe.dim[1] + dc - h3.dim[1], 2)
+    door_cafe = round(h2.dim[1]/2 + 0.25, 2)
+    print('Attach cafe-h3: %s, %s' % (str(dy_up), str(door_cafe)))
 
     # stairs
-    print('H2A dimensions (%s, %s)' % (str(h2.dim[1]), str(12.0)))
-    print('H2A attach (%s, %s)' % (str(0.0), str(h2.dim[1]/2)))
+    stairs = round(abs(h3.c4[0]-g.c1[0]), 2)
+    print('H2.S dimensions (%s, %s)' % (str(stairs), str(h2.dim[1])))
+    print('H2.S attach (%s, %s) \n' % (str(0.0), str(h2.dim[1]/2)))
 
-    # classrooms G-F
+    # HALL classrooms G --> F
     h2G_x = round(f.c1[0]-g.c1[0], 2)
     h2G_y = h2.dim[1]
-    print('H2G dimensions (%s, %s)' % (str(h2G_x), str(h2G_y)))
+    print('H2.G dimensions (%s, %s)' % (str(h2G_x), str(h2G_y)))
 
-    # classrooms F-E
+    # classrooms F --> E
     h2F_x = round(e.c1[0]-f.c1[0], 2)
     h2F_y = h2.dim[1]
-    print('H2F dimensions (%s, %s)' % (str(h2F_x), str(h2F_y)))
-    print('H2F dimensions (%s, %s)' % (str(h2F_x), str(h2F_y)))
+    print('H2.F dimensions (%s, %s)' % (str(h2F_x), str(h2F_y)))
 
-    # classrooms E-D
+    # classrooms E --> D
     h2E_x = round(d.c1[0]-e.c1[0], 2)
     h2E_y = h2.dim[1]
-    print('H2E dimensions (%s, %s)' % (str(h2E_x), str(h2E_y)))
+    print('H2.E dimensions (%s, %s)' % (str(h2E_x), str(h2E_y)))
 
-    # classrooms D-end
+    # classrooms D --> END
     h2D_x = round(h2.c3[0] - d.c1[0], 2)
     h2D_y = h2.dim[1]
-    print('H2D dimensions (%s, %s)' % (str(h2D_x), str(h2D_y)))
+    print('H2.D dimensions (%s, %s)' % (str(h2D_x), str(h2D_y)))
 
-    h2G_door = round(g.dim[0] - 0.8, 2)
+    # attach classrooms
+    print('Attach classrooms: (0, %s)' % str(h2D_y/2))
+    h2G_door = round(g.dim[0] - 0.8 - (0.9/2), 2)
     h2G_D = d.dim
-    print('G-D dimensions: %s' % str(h2G_D))
-    print('H2G door %s' % str(h2G_door))
+    print('G-D rooms dimensions: %s' % str(h2G_D))
+    print('G-D attach doors (0.0, %s) \n' % str(h2G_door))
 
     # H1
-    h1_h2D = h2D_x - h1.dim[0]
-    print('Attach H1-H2 %s' % str(h1_h2D))
+    h1_h2D = round(h2D_x - h1.dim[0], 2)
+    print('Attach H1-H2 (%s, %s)' % (str(h1_h2D), str(h1.dim[0]/2)))
 
     # room C
     h1C_x = h1.dim[0]
     h1C_y = round(h1.c2[1]-c.c1[1], 2)
     print('H1C dimensions (%s, %s)' % (str(h1C_x), str(h1C_y)))
-    h1C_door = c.dim[1]-1.05
-    print('H1C door %s' % str(h1C_door))
 
     # room B
     h1B_x = h1.dim[0]
     h1B_y = round(c.c1[1] - b.c1[1], 2)
     print('H1B dimensions (%s, %s)' % (str(h1B_x), str(h1B_y)))
 
-    # room B
+    # room A
     h1A_x = h1.dim[0]
     h1A_y = round(b.c1[1] - gym.c2[1], 2)
     print('H1A dimensions (%s, %s)' % (str(h1A_x), str(h1A_y)))
-    h1A_att = round(a.c1[1]-gym.c2[1],2)
-    print('H1-A attach %s' % str(h1A_att))
+    h1A_att = round(a.c1[1]-gym.c2[1], 2)
+    ABC_door = c.dim[1] - 1.05 - (0.9 / 2)
 
     # rooms A-B-C
-    print('Rooms A-B-C dimensions %s' % str(b.dim))
+    print('\nRooms A-B-C dimensions %s' % str(b.dim))
+    print('H1B-C attach (0.0, %s)' % str(ABC_door))
+    print('H1-A attach (%s, %s)' % (str(h1A_att), str(ABC_door)))
 
-    plot_all()
+    # gym
+    print('\nGym dimensions %s' % str(gym.dim))
+    gym_x = round(h1.dim[0] - gym.dim[0], 2)
+    gym_d = round(gym.dim[0] - (h1.dim[0]/2), 2) # + 0.5
+    print('Attach Gym (%s, %s)' % (str(gym_x), str(gym_d)))
+
+    plot_all(bloat)
 
 
 if __name__ == '__main__':

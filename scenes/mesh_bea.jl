@@ -134,9 +134,8 @@ function add_attached!(r::Room, r_new::Room, dir::String, offset::Float64, openi
     push!(r.attached, a)
 end
 
-# move cafe UP
-yo = 33.0
-plot_room!(r::Room) = plot_room!(r, 0.0, yo)
+
+plot_room!(r::Room) = plot_room!(r, 0.0, 0.0)
 
 function plot_room!(r::Room, x0::Float64, y0::Float64)
     x1 = r.x + x0
@@ -397,8 +396,8 @@ function print_graph(g::Graph)
     println("===================")
     println()
 
-    dx = 0.0
-    dy = 0.0
+    dx = -6.95
+    dy = 31.8
 
     # translate graph to my coordinates
     i = 1
@@ -441,6 +440,7 @@ end
 
 function create_layout_gazebo(is_debug::Bool=false)
     width = 3.9
+    wid2 = 1.95
 
     # cafe
     r1 = Room(10.0, 17.0, RefineRectUR(), "room_1")
@@ -450,24 +450,24 @@ function create_layout_gazebo(is_debug::Bool=false)
 
     # H3
     r2 = Room(10.0, 8.3, RefineTri(), "room_2")
-    add_attached!(r1, r2, "r", 10.5, 3.0)
+    add_attached!(r1, r2, "r", 10.5, 3.3)
 
     # H2 - Stairs
     r3 = Room(12.0, width, RefineHoriz(), "room_3")
-    add_attached!(r2, r3, "r", 0.0, width / 2)
+    add_attached!(r2, r3, "r", 0.0, wid2)
 
     is_debug && (r3.refine_method.n = 4)
 
     r_last_hall = r3
 
     for k = 1:4
-        hx = ifelse(k == 4, 9.4, 9.3)
 
+        hx = ifelse(k == 4, 9.4, 9.3)
         r4 = Room(hx, width, RefineHoriz(), "room_4")
-        add_attached!(r_last_hall, r4, "r", 0.0, width / 2)
+        add_attached!(r_last_hall, r4, "r", 0.0, wid2)
 
         r5 = Room(7.9, 5.5, RefineRectDR(), "room_5")
-        add_attached!(r4, r5, "u", 0.0, 7.1)
+        add_attached!(r4, r5, "u", 0.0, 7.45)
 
         r_last_hall = r4
 
@@ -479,13 +479,14 @@ function create_layout_gazebo(is_debug::Bool=false)
     width = 3.4
     for k = 1:3
 
-        h = ifelse(k==3, 4.8, 4.1)
+        h = [4.1, 3.6, 4.8]
+        wd = 1.5
 
         # H1
-        r6 = Room(width, h, RefineVert(), "room_6")
+        r6 = Room(width, h[k], RefineVert(), "room_6")
 
         Δx = ifelse(k == 1, 6.0, 0.0)
-        add_attached!(r_last_hall, r6, "d", Δx, width/2)
+        add_attached!(r_last_hall, r6, "d", Δx, wd)
 
         is_debug && (r6.refine_method.n = 2)
 
@@ -493,7 +494,7 @@ function create_layout_gazebo(is_debug::Bool=false)
         r7 = Room(5.83, 3.0, RefineHoriz(), "room_7")
 
         dh = ifelse(k==3, 1.2, 0.0)
-        add_attached!(r6, r7, "l", dh, 1.85)
+        add_attached!(r6, r7, "l", dh, 1.5)
 
         is_debug && (r7.refine_method.n = 3)
 
@@ -502,7 +503,94 @@ function create_layout_gazebo(is_debug::Bool=false)
 
     w8 = 17.0
     r8 = Room(w8, 31.0, RefineRectUR(), "room_8")
-    add_attached!(r_last_hall, r8, "d", - w8 + width, w8 - width / 2)
+    add_attached!(r_last_hall, r8, "d", - 13.6, 15.8)
+
+    is_debug && (r8.refine_method.nx = 3)
+    is_debug && (r8.refine_method.ny = 5)
+
+    return r1
+end
+
+function create_layout_bloat(is_debug::Bool=false)
+
+    width = 4.29
+    wid2 = width/2
+
+    # cafe dimensions: (12.65, 23.2)
+    r1 = Room(12.65, 23.2, RefineRectUR(), "room_1")
+
+    is_debug && (r1.refine_method.nx = 3)
+    is_debug && (r1.refine_method.ny = 5)
+
+    # Hall 3 dimensions (11.0, 9.13)
+    r2 = Room(11.0, 9.13, RefineTri(), "room_2")
+    # Attach cafe-h3:  16.05, 2.4
+    add_attached!(r1, r2, "r", 16.05, wid2)
+
+    # H2.S dimensions (8.58, 4.29)
+    r3 = Room(8.58, width, RefineHoriz(), "room_3")
+    # H2.S attach  (0.0, 2.145)
+    add_attached!(r2, r3, "r", 0.0, wid2)
+
+    is_debug && (r3.refine_method.n = 4)
+
+    r_last_hall = r3
+
+    # rooms G-F-E-D (11.99, 4.29) (10.45, 4.29)
+    wh2 = 4.29
+    wh2h = wh2/2
+    for k = 1:4
+
+        # H2.D dimensions <> H2.G, H2.F, H2.E dimensions
+        hx = ifelse(k == 4, 10.45, 11.99)
+        r4 = Room(hx, wh2, RefineHoriz(), "room_4")
+        # Attach classrooms: (0, 2.145)
+        add_attached!(r_last_hall, r4, "r", 0.0, wh2h)
+
+        # G-D rooms dimensions (10.45, 6.05)
+        r5 = Room(10.45, 6.05, RefineRectDR(), "room_5")
+        # G-D attach doors (0.0, 9.2)
+        add_attached!(r4, r5, "u", 0.0, 9.2)
+
+        r_last_hall = r4
+
+        is_debug && (r_last_hall.refine_method.n = 2)
+        is_debug && (r5.refine_method.nx = 2)
+        is_debug && (r5.refine_method.ny = 2)
+    end
+
+    wh1 = 3.74
+    wh1h = wh1/2
+
+    for k = 1:3
+
+        # H1C (3.74, 4.51) , H1B (3.74, 3.96), H1A (3.74, 5.28)
+        h = [4.51, 3.96, 5.28]
+        r6 = Room(width, h[k], RefineVert(), "room_6")
+
+        # Attach H1-H2 (6.71, 1.87)
+        Δx = ifelse(k == 1, 6.71, 0.0)
+        add_attached!(r_last_hall, r6, "d", Δx, wh1h)
+
+        is_debug && (r6.refine_method.n = 2)
+
+        # Rooms A-B-C dimensions (6.41, 3.3)
+        r7 = Room(6.41, 3.3, RefineHoriz(), "room_7")
+
+        # H1B-C attach (0.0, 1.8), H1-A attach (1.32, 1.8)
+        dh = ifelse(k==3, 1.32, 0.0)
+        add_attached!(r6, r7, "l", dh, 1.8)
+
+        is_debug && (r7.refine_method.n = 3)
+
+        r_last_hall = r6
+    end
+
+    w8 = 18.7
+    # Gym dimensions (18.7, 34.1)
+    r8 = Room(w8, 34.1, RefineRectUR(), "room_8")
+    # Attach Gym (-14.96, 16.83)
+    add_attached!(r_last_hall, r8, "d", - 14.96, 16.83)
 
     is_debug && (r8.refine_method.nx = 3)
     is_debug && (r8.refine_method.ny = 5)
@@ -511,7 +599,7 @@ function create_layout_gazebo(is_debug::Bool=false)
 end
 
 scene = Scene()
-r1 = create_layout_gazebo()
+r1 = create_layout_bloat()
 plot_room!(r1)
 plot_node!(r1)
 
@@ -554,8 +642,8 @@ end
 
 display(scene)
 
-xlims!(-1, 71.0)
-ylims!(-1, 55.0)
+xlims!(-40, 75.0)
+ylims!(-40, 40.0)
 
 if true
     dir = lift(scene.events.keyboardbuttons) do but
