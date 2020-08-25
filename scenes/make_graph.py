@@ -469,7 +469,7 @@ def finish_plot(op='all', lgd=None, my_ext='.png'):
             fig_name = 'school_gazebo'
         else:
             plt.title('School Scenario')
-            fig_name = 'school_bloat'
+            fig_name = 'school_graph_final'
         if lgd is not None:
             my_hand = []
             if len(lgd) >= 2:
@@ -783,12 +783,14 @@ def compute_for_mesh():
 
 
 if __name__ == '__main__':
+    bloat = True
+    plot_all(bloat)
     # plot_bloat_school_pose()
     # align_pose_school()
     # plot_both_ss2()
     # save_coord_ss2(True)
     #
-    compute_for_mesh()
+    # compute_for_mesh()
     # align_pose_school()
     # plot_mismatch()
     # plot_both_ss2()

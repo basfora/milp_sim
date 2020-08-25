@@ -1,5 +1,5 @@
 import os
-
+from math import sqrt
 
 def get_file_path(name_file, parent_folder='txt_files', my_format='.txt'):
     """Get txt file path inside scenarios directory"""
@@ -195,15 +195,18 @@ def as_list(V_dict: dict):
     return V
 
 
-def make_txt_edges():
+def make_txt_edges(f_name='School_Gazebo_EGraph', E=None):
 
-    edges = manual_ss_edges()[0]
+    if E is None:
+        edges = manual_ss_edges()[0]
+    else:
+        edges = E
 
-    line1 = ['SS-1', 'Edges']
+    line1 = ['SS-2', 'Edges']
     line2 = ['ID', 'v1', 'v2']
     line_f = '{0:3d} {1:2d} {2:2d} \n'
 
-    make_txt('School_Gazebo_EGraph', edges, line1, line2, line_f)
+    make_txt(f_name, edges, line1, line2, line_f)
 
 
 def make_txt_pose():
@@ -238,6 +241,9 @@ def make_txt(file_name: str, my_list: list, line1: list, line2: list, line_f='{0
 
         a = el[0]
         b = el[1]
+
+        if isinstance(a, int):
+            line_f = '{0:3d} {1:2d} {2:2d} \n'
 
         my_text = line_f.format(i, a, b)
         f.write(my_text)
@@ -275,6 +281,7 @@ def make_txt_str(file_name: str, my_list: list, line1: list, line2: list, line_f
 
 
 def extract_robot_motion(name_file='School_CamsLeft'):
+    """Return pose as list"""
 
     # find file
     f_path = get_file_path(name_file, 'txt_files', '.csv')
@@ -310,21 +317,129 @@ def get_vertices(name_file, parent_folder='txt_files'):
     return V
 
 
-def order_vertices(name_file):
+def reorder(V: list):
+    """Re-order vertices for School Scenario (Image)"""
+
+    V2 = V
+    # gym area
+    V2A = [v for v in V2 if v[0] > 50 and v[1] < 31]
+    V2 = update_list(V2, V2A)
+    # first hall
+    V2B = [v for v in V2 if v[0] > 50 and v[1] < 46]
+    V2 = update_list(V2, V2B)
+    # corner
+    V2C = [v for v in V2 if v[0] > 45 and v[1] < 46]
+    V2 = update_list(V2, V2C)
+    # second hall + classroom
+    V2D = [v for v in V2 if v[0] > 5]
+    # rest
+    V2 = update_list(V2, V2D)
+    V2E = [v for v in V2]
+
+    # lower y, ascending x - GYM
+    V2A.sort(key=lambda k: [k[1], k[0]])
+    # lower y, descending x - H1
+    V2B.sort(key=lambda k: [k[1], -k[0]])
+    # (left-right) - H2
+    V2D.sort(key=lambda k: [-k[0]])
+    # descending x, lower y (left->right, up->down)
+    V2E.sort(key=lambda k: [-k[1], -k[0]])
+
+    V3 = V2A + V2B + V2C + V2D + V2E
+
+    map_idx = []
+    for el in V3:
+        idx = V.index(el)
+        map_idx.append(idx)
+
+    return V3, map_idx
+
+
+def update_list(V_in, V_not):
+    """Take out vertices from list V_not"""
+    V_out = [v for v in V_in if v not in V_not]
+    return V_out
+
+
+def organize_vertices(name_file='School_Image_VGraph_original'):
     """Re-order vertices so it's GYM - H1 - ABC - H2 - DEFG - H3 - Cafe"""
+
+    # original lists
     V_raw = get_vertices(name_file, parent_folder='txt_files')
+    E_raw = get_edges('School_Image_EGraph_original', parent_folder='txt_files')
 
-    V = [v for v in reversed(V_raw)]
+    # we want to take out the following
+    takeout_id = [9, 43, 44, 45, 47, 48, 49]
+    takeout_idx = [v_id - 1 for v_id in takeout_id]
 
+    # auxiliary list of indexes and ids
+    idx_raw = list(range(len(V_raw)))
+
+    # take out coordinates of vertices in take out list
+    V_2 = [v for v in V_raw if V_raw.index(v) not in takeout_idx]
+
+    # sort by y
+    V_3, map_2_3 = reorder(V_2)
+
+    # make map old --> new vertices
+    map_idx = []
+    for v in V_3:
+        orig_idx = V_raw.index(v)
+        # original_idx = map_v[new_idx]
+        map_idx.append(orig_idx)
+
+    # take out edges that corresponded to deprecated vertices
+    e_keep = [e for e in E_raw if e[0] not in takeout_id and e[1] not in takeout_id]
+
+    # swipe and fix new vertex id
+    E_new = []
+    for edge in e_keep:
+        # original vertices
+        v1_idx = edge[0] - 1
+        v2_idx = edge[1] - 1
+
+        # are now gonna have new ID
+        v1_new = map_idx.index(v1_idx) + 1
+        v2_new = map_idx.index(v2_idx) + 1
+
+        # append new edge
+        new_edge = (v1_new, v2_new)
+        E_new.append(new_edge)
+
+    V = V_3
+    E = E_new
     # save as txt file
     if 'Gazebo' in name_file:
-        f_name = 'School_Gazebo_VGraph'
-        line1 = ['SS-2', 'Gazebo Graph Coordinates']
+        f_name_v = 'School_Gazebo_VGraph'
+        f_name_e = 'School_Gazebo_EGraph'
+        line1_v = ['SS-2', 'Gazebo Graph Coordinates']
     else:
-        f_name = 'School_Image_VGraph'
-        line1 = ['SS-2', 'Image Graph Coordinates']
+        f_name_v = 'School_Image_VGraph'
+        f_name_e = 'School_Image_EGraph'
+        line1_v = ['SS-2', 'Image Graph Coordinates']
+
     line2 = ['ID', 'X', 'Y']
-    make_txt(f_name, V, line1, line2)
+    make_txt(f_name_v, V, line1_v, line2)
+    make_txt_edges(f_name_e, E)
+
+    make_map(map_idx)
+
+    return
+
+
+def make_map(map_idx):
+
+    # make map
+    my_map = []
+    for idx in map_idx:
+        new_idx = map_idx.index(idx)
+        v_map = (idx + 1, new_idx + 1)
+        my_map.append(v_map)
+
+    f_name = 'School_Vertex_Map'
+    line1 = ['SS-2', 'Graph Vertices - Updated']
+    line2 = ['#', 'OLD', 'NEW']
+    make_txt(f_name, my_map, line1, line2)
 
     return
 
@@ -332,7 +447,8 @@ def order_vertices(name_file):
 def get_edges(name_file, parent_folder='txt_files'):
     file_path = get_file_path(name_file, parent_folder)
     E_dict = read_data_txt(file_path)
-    E = as_list(E_dict)
+    E_float = as_list(E_dict)
+    E = [(int(e[0]), int(e[1])) for e in E_float]
 
     return E
 
@@ -371,10 +487,66 @@ def trans_pose(delta: tuple):
     return pose2
 
 
+def compute_sampling(delta=15):
+    """Compute image sampling based on robot's motion
+    :param delta : desired distance before new image (in cm)"""
+
+    name_file = 'School_CamsLeft'
+    pose = extract_robot_motion(name_file)
+
+    max_t = len(pose)
+    total_frames = 14922
+    max_t2 = total_frames - max_t
+    print('Images per floor 1st: %d, 2nd: %d, total: %d' % (max_t, max_t2, total_frames))
+    c = round(total_frames/max_t, 2)
+
+    dist = []
+
+    for t in range(max_t - 1):
+        pos1 = pose[t]
+        pos2 = pose[t+1]
+
+        dx = pos2[0] - pos1[0]
+        dy = pos2[1] - pos1[1]
+
+        dist_t = sqrt(dx ** 2 + dy ** 2)
+
+        dist.append(dist_t)
+
+    # compute average distance between frames
+    avg_dist = sum(dist)/len(dist)
+    print('Robot moves %.4f m in average between frames.' % avg_dist)
+
+    # distance between images (in m)
+    dm = delta/100
+    beta = dm/avg_dist
+    sampling_rate = round(beta)
+    print("\nTo get a new image every %d cm, sample 1 every %d images." % (delta, sampling_rate))
+
+    # how many images would that entail
+    n_images = round(max_t/sampling_rate) * c
+    print('That means for each scenario (normal, fire and collapsed): a total of %d images ' % n_images)
+
+    # per vertex
+    n = 53 - 7
+    im_v = round(n_images/n)
+    print('or, in average, %d per vertex (with graph of %d vertices)' % (im_v, n))
+
+    # check if calculations made sense
+    total_frames_calc = im_v * n * sampling_rate
+    print('\nBack engineered: total images %d, actual %d' % (total_frames_calc, total_frames))
+
+    print('Considering rate of 1 em 150 images, you are getting a new image every %d m' % round(150 * dm))
+
+    return
+
+
 if __name__ == '__main__':
+    organize_vertices()
     # make_txt_edges()
     # make_txt_pose()
     # trans_pose((0, 0))
-    order_vertices('School_Gazebo_VGraph_v2')
+    # order_vertices('School_Gazebo_VGraph_v2')
+    # compute_sampling(35)
 
 
