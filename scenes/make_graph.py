@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from milp_mespp.core import extract_info as ext
+from milp_mespp.core import plot_fun as pf
 
 from milp_sim.scenes.class_room import MyRoom
 from milp_sim.scenes import files_fun as ff
@@ -397,50 +398,6 @@ def wall_nodes_connections(scenario: dict):
 
 # ----------------------------------------------------------------------------------
 # PLOT STUFF
-def plot_points_between_list(v_points, v_conn, my_color='k', my_marker=None):
-    """Plot points and their connections
-    :param v_points = [(x1, y1), (x2, y2)...]
-    :param v_conn = [(0, 1), (1, 2)...]
-    :param my_color
-    :param my_marker"""
-
-    my_handle = None
-    for wall_k in v_conn:
-        i0 = wall_k[0]
-        i1 = wall_k[1]
-
-        n0 = v_points[i0]
-        n1 = v_points[i1]
-
-        px = [n0[0], n1[0]]
-        py = [n0[1], n1[1]]
-
-        my_handle = plt.plot(px, py, color=my_color, marker=my_marker, linestyle='solid', markersize=4)
-
-    return my_handle
-
-
-def plot_points(vertices: dict or list, my_color='k', my_marker='o', sizemarker=2):
-    """Plot vertices from
-     (dict) V[v] = (x,y)
-     (list) V = [(x1, y1), (x2, y2)...]"""
-
-    if isinstance(vertices, dict):
-        for k in vertices.keys():
-            if not isinstance(k, int):
-                continue
-            x = [vertices[k][0]]
-            y = [vertices[k][1]]
-            plt.plot(x, y, color=my_color, marker=my_marker, markersize=sizemarker)
-    elif isinstance(vertices, list):
-        for v in vertices:
-            x = v[0]
-            y = v[1]
-            plt.plot(x, y, color=my_color, marker=my_marker, markersize=sizemarker)
-    else:
-        print('Wrong input format, accepts dict or list')
-
-    return None
 
 
 def save_plot(fig_name: str, folder='figs', my_ext='.png'):
@@ -597,9 +554,9 @@ def plot_graph(bloat=False, number=False, edges=True, finish=False):
             v1 = el[0] - 1
             v2 = el[1] - 1
             E_plot.append((v1, v2))
-        plot_points_between_list(V, E_plot, my_color, 'o')
+        pf.plot_points_between_list(V, E_plot, my_color, 'o')
     else:
-        plot_points(V, my_color)
+        pf.plot_points(V, my_color)
 
     if number:
         # plot index + 1 at v coordinates +- offset
@@ -622,7 +579,7 @@ def plot_ss2(bloat=False, adjusted=True, my_color='k'):
     wall_nodes, wall_conn = wall_nodes_connections(school)
 
     # plot floor plan
-    plot_points_between_list(wall_nodes, wall_conn, my_color)
+    pf.pf.plot_points_between_list(wall_nodes, wall_conn, my_color)
 
     return school
 
@@ -656,7 +613,7 @@ def align_pose_school():
     plot_pose(pose_raw, False, 'c')
     # plot intersection points
     pts = [xy_frame, xy_door]
-    plot_points_between_list(pts, [(0, 1)], 'r', 'o')
+    pf.pf.plot_points_between_list(pts, [(0, 1)], 'r', 'o')
 
     # translate
     delta = (round(xy_door[0] - xy_frame[0], 2), round(xy_door[1] - xy_frame[1], 2))
@@ -669,7 +626,7 @@ def align_pose_school():
     or_conn = [(0, 1), (0, 2), (0, 3), (0, 4)]
 
     plot_pose(pose2, False, 'blue')
-    plot_points_between_list(origin, or_conn, 'gray')
+    pf.pf.plot_points_between_list(origin, or_conn, 'gray')
 
     # plot_graph()
     lgd = ['Origin', 'School', 'Robot', 'Matching Point', 'Robot (raw)']

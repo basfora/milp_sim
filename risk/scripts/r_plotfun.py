@@ -66,6 +66,16 @@ def define_fonts():
     return my_font
 
 
+def define_fonts2():
+    my_font = define_fonts()
+
+    my_font[2] = {'family': 'serif', 'color': 'black', 'weight': 'bold', 'size': 11,
+                  'horizontalalignment': 'center'}\
+
+    my_font[3] = my_font[2]
+
+    return my_font
+
 def place_image(im, ax_arr, my_subs: list):
     """ place image in subplot and take out ticks and stuff"""
 
@@ -170,13 +180,13 @@ def mount_frame(path_and_fig, t: int, my_words: dict, n_sub=1, video=False):
     save_frame(path_and_fig, frame_idx, video)
 
 
-def save_frame(path_and_fig, frame_idx, video=False):
+def save_frame(path_and_fig, frame_idx, video=False, key='hazard'):
     path_to_folder = os.path.dirname(path_and_fig[0])
 
     if video:
         save_copied_frames(path_to_folder, frame_idx)
     else:
-        save_one_frame(path_to_folder, frame_idx)
+        save_one_frame(path_to_folder, frame_idx, key)
 
     return
 
@@ -316,3 +326,178 @@ def create_dict(my_keys, default_value):
     for k in my_keys:
         my_dict[k] = default_value
     return my_dict
+
+
+# ------------------------------------------------------------
+def mount_coord_frame(path_and_fig, t: int, my_words: dict, n_sub=1, video=False):
+    """Mount frame for video
+    :path_and_fig: path+name(s) of figure(s)
+    :t: time step
+    :my_words: dict with 3 keys in order my_title, subtitle, left title, right title
+    :n_sub: number of subplots"""
+
+    # ----------------
+    my_font = define_fonts2()
+    # -----------------
+
+    # how many subplots
+    my_subs = list(range(0, n_sub))
+
+    # create figure with subplots
+    fig_1, ax_arr = plt.subplots(1, n_sub, figsize=(9, 5), dpi=600)
+
+    # retrieve graph plots as images
+    im = {}
+    if n_sub == 1:
+        if isinstance(path_and_fig, str):
+            im[0] = plt.imread(path_and_fig)
+        else:
+            im[0] = plt.imread(path_and_fig[2])
+
+    else:
+        for i in my_subs:
+            im[i] = plt.imread(path_and_fig[i])
+
+    # -------------------
+    # plot text
+    # insert time step
+
+    # title and subtitle
+    for line in my_words.keys():
+        my_text = my_words[line]['text']
+        x, y = my_words[line]['xy']
+
+        fig_1.text(x, y, my_text, fontdict=my_font[line])
+
+    if n_sub == 3:
+        for col in range(1, 5):
+            my_text = my_words[col]['text']
+            x, y = my_words[col]['xy']
+
+            # same for all cols
+            idx = 1
+            fig_1.text(x, y, my_text, fontdict=my_font[idx])
+
+        for col in range(5, 11):
+            my_text = my_words[col]['text']
+            x, y = my_words[col]['xy']
+
+            # same for all sub cols
+            idx = 2
+            fig_1.text(x, y, my_text, fontdict=my_font[idx])
+
+    # labels
+    # my_hazard_labels(fig_1)
+    # cax = plt.axes([0.85, 0.1, 0.075, 0.8])
+    # plt.colorbar(cax=cax)
+    # # -------------------
+
+    # take out axis stuff
+    place_image(im, ax_arr, my_subs)
+    # -------------------
+
+    # save in folder
+    frame_idx = t
+    save_frame(path_and_fig, frame_idx, video, 'frame')
+
+
+
+class CustomizePlot:
+
+    def __init__(self):
+
+        # line specs
+        self.line_style = 'solid'
+        self.line_color = 'k'
+        self.line_width = 2
+
+        # marker specs
+        self.marker = None
+        self.marker_color = self.line_color
+        self.marker_size = 5
+
+        # title
+        self.title = None
+        self.subtitle = None
+        self.fonts = self.set_fonts()
+
+        # other text
+        self.text = None
+        self.text_pos = self.set_pos()
+
+        # axis
+        self.xlabel = None
+        self.ylabel = None
+
+        # legend
+        self.legend = None
+
+        # orientation
+        self.orientation = 'landscape'
+
+    @staticmethod
+    def set_fonts():
+
+        size_title = 13
+        size_subtitle = 12
+        size_text = 10
+
+        my_fonts = dict()
+
+        my_fonts[0] = {'family': 'serif', 'color': 'darkblue', 'weight': 'normal', 'size': size_subtitle,
+                       'horizontalalignment': 'center'}
+        my_fonts[1] = {'family': 'serif', 'color': 'darkred', 'weight': 'normal', 'size': size_title,
+                       'horizontalalignment': 'center'}
+        my_fonts[2] = {'family': 'serif', 'color': 'darkgray', 'weight': 'normal', 'size': size_text,
+                       'horizontalalignment': 'center'}
+        my_fonts[3] = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': size_title,
+                       'horizontalalignment': 'center'}
+        my_fonts[4] = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': size_title,
+                       'horizontalalignment': 'center'}
+
+        return my_fonts
+
+    def set_pos(self, list_pos=None):
+
+        positions = dict()
+
+        if list_pos is None:
+            positions[0] = (0.5, 0.93)
+            positions[1] = (0.5, 0.88)
+            positions[2] = (0.5, 0.83)
+            positions[3] = (0.30, 0.05)
+            positions[4] = (0.75, 0.05)
+            return positions
+
+        else:
+            i = 0
+            for el in list_pos:
+                positions[i] = el
+                i += 1
+
+        self.text_pos = positions
+
+    def set_l_style(self, my_style: str):
+        self.line_style = my_style
+
+    def set_l_color(self, my_color: str):
+        self.line_color = my_color
+        self.marker_color = my_color
+
+    def set_l_width(self, my_w: int):
+        self.line_width = my_w
+
+    def set_marker(self, my_marker: str):
+        self.marker = my_marker
+
+    def set_marker_size(self, my_size: int):
+        self.marker_size = my_size
+
+    def set_marker_color(self, my_color: str):
+        self.marker_color = my_color
+
+    def set_text(self, my_text: dict):
+        self.text = my_text
+
+
+
