@@ -5,7 +5,7 @@ import time
 from milp_mespp.core import extract_info as ext, plot_fun as pf
 from igraph import plot
 from milp_sim.risk.scripts import r_plotfun as rpf
-from milp_sim.risk.scripts.hazard_model import MyHazard
+from milp_sim.risk.classes.hazard import MyHazard
 
 
 class MyDanger:

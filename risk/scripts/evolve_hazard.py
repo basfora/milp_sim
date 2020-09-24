@@ -1,4 +1,4 @@
-from milp_sim.risk.scripts.danger import MyDanger
+from risk.classes.danger import MyDanger
 import milp_mespp.core.extract_info as ext
 import sys
 print(sys.path)

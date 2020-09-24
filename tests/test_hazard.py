@@ -1,5 +1,5 @@
 from milp_mespp.core import extract_info as ext
-from milp_sim.risk.scripts.hazard_model import MyHazard
+from milp_sim.risk.classes.hazard import MyHazard
 import numpy as np
 
 

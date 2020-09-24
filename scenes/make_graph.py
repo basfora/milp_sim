@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
+from math import sqrt
 from milp_mespp.core import extract_info as ext
 from milp_mespp.core import plot_fun as pf
+from milp_mespp.core import create_parameters as cp
 
 from milp_sim.scenes.class_room import MyRoom
 from milp_sim.scenes import files_fun as ff
@@ -294,6 +296,7 @@ def save_coord_ss2(bloat=False):
     ff.make_txt_str(f_name, coord_list, line1, line2)
 
 
+# building scenario
 def build_school(bloat=False, adjusted=False):
     # floorplan
     school_g = ss_2(bloat, adjusted)
@@ -396,9 +399,210 @@ def wall_nodes_connections(scenario: dict):
     return wall_nodes, wall_conn
 
 
+# build school for gazebo
+def build_gazebo_ss2():
+    """Shrink graph for images to fit gazebo world
+    """
+
+    # read from final images graph (already organized)
+    V_i = ff.get_vertices('School_Image_VGraph')
+    # get edges
+    E_i = ff.get_edges('School_Image_EGraph')
+
+    V = assign_coordinates(V_i)
+
+    # make txt - vertices
+    f_name = 'School_Gazebo_VGraph'
+    line1 = ['SS-2', 'Gazebo Graph Coordinates']
+    line2 = ['ID', 'X', 'Y']
+
+    ff.make_txt(f_name, V, line1, line2)
+
+    # make txt - edges
+    f_name_e = 'School_Gazebo_EGraph'
+    # edges will be the same
+    E = E_i
+    ff.make_txt_edges(f_name_e, E)
+
+    # plot to make sure it looks right (school + graph)
+    plot_all()
+
+    # make igraph file
+
+
+def shrink_vertices(V_coord: list, E: list):
+    """fitting: a_x = 1.1
+    shrink by distance """
+
+
+    n = len(V_coord)
+
+    V = list(range(1, n + 1))
+
+    dist_i = []
+
+    E.sort(key=lambda k: [k[0], k[1]])
+
+    new_dist = []
+    for edge in E:
+        v1 = edge[0]
+        v2 = edge[1]
+
+        # coordinates
+        p1 = V_coord[v1-1]
+        p2 = V_coord[v2-1]
+
+        # get original distance
+        dx = - p2[0] + p1[0]
+        dy = - p2[1] + p1[1]
+        dist_i.append((dx, dy))
+
+        # shrink it
+        dx_new = shrink_it(dx)
+        dy_new = shrink_it(dy)
+        d_new = (dx_new, dy_new)
+
+        new_dist.append(d_new)
+
+    # first vertex
+    xo, yo = V_coord[0][0], V_coord[0][1]
+    Vxy_new = [(xo, shrink_it(yo))]
+    V_new = [1]
+
+    E_aux = [edge for edge in E]
+
+    while True:
+        for edge in E_aux:
+            v1 = edge[0]
+            v2 = edge[1]
+
+            i = E.index(edge)
+            j = E_aux.index(edge)
+
+            if v1 in V_new and v2 not in V_new:
+                my_v = v1
+            elif v2 in V_new and v1 not in V_new:
+                my_v = v2
+            elif v1 in V_new and v2 in V_new:
+                E_aux.pop(j)
+            else:
+                pass
+
+            xo = Vxy_new[my_v - 1][0]
+            yo = Vxy_new[my_v - 1][1]
+
+            x1 = round(xo + new_dist[i][0], 2)
+            y1 = round(yo + new_dist[i][1], 2)
+
+            V_new.append(v1)
+            Vxy_new.append((x1, y1))
+
+            E_aux.pop(j)
+            break
+
+        if len(V_new) == len(V):
+            break
+
+    return Vxy_new
+
+
+def assign_coordinates(V_xy: list):
+
+    n = len(V_xy)
+    V = list(range(1, n + 1))
+
+    xo = V_xy[0][0]
+    yo = shrink_it(V_xy[0][1])
+
+    x, y = xo, yo
+
+    V_xy_new = [(xo, yo)]
+
+    for v in V:
+        vidx = v - 1
+
+        if v == 1:
+            continue
+
+        # coordinates
+        p1 = V_xy[vidx - 1]
+        p2 = V_xy[vidx]
+
+        # get original distance
+        dx = p2[0] - p1[0]
+        dy = p2[1] - p1[1]
+
+        # shrink it
+        dx_new = shrink_it(dx)
+        dy_new = shrink_it(dy)
+
+        if v in [16]:
+            dx_new = shrink_it(dx, 1 / 1.4)
+
+        if v in [19]:
+            dx_new = shrink_it(dx, 1 / 1.6)
+
+        if v in [22, 28, 34]:
+            # x += 0.8
+            dx_new = shrink_it(dx, 1/1.4)
+
+        if v == 31:
+            dx_new = shrink_it(dx, 1/1.3)
+
+        if v == 13:
+            dx_new -= 1.5
+
+        if v in [37, 38, 39]:
+            dx_new = shrink_it(dx, 1.3)
+
+        if v > 40:
+            dy_new = shrink_it(dy, 1/1.4)
+            dx_new = shrink_it(dx, 1/1.2)
+
+        # new pose
+        x = xo + dx_new
+
+        if v in [19]:
+            x -= 1
+
+        y = yo + dy_new
+
+        V_xy_new.append((x, y))
+
+        # iterate
+        xo = x
+        yo = y
+
+    return V_xy_new
+
+
+def shrink_it(it, alpha=1/a_x):
+    b = round(it * alpha, 2)
+    return b
+
+
+def get_dist(p1, p2):
+    """Get distance between points"""
+    x1 = p1[0]
+    x2 = p2[0]
+
+    y1 = p1[1]
+    y2 = p2[1]
+
+    dist = sqrt((x1-x2) ** 2 + (y1-y2) ** 2)
+
+    return dist
+
+
+# build actual g file
+def create_igraph():
+
+    edges = ff.get_edges('School_Gazebo_EGraph')
+    g = cp.create_school_graph(edges)
+    return
+
 # ----------------------------------------------------------------------------------
 # PLOT STUFF
-
 
 def save_plot(fig_name: str, folder='figs', my_ext='.png'):
 
@@ -535,12 +739,13 @@ def plot_pose(f_name='School_RPose', finish=False, color='b-'):
 
 def plot_graph(bloat=False, number=False, edges=True, finish=False):
     """Plot graph (not numbered)"""
-    # GRAPH
+
     # get graph info
     if bloat:
         f_name = ['School_Image_VGraph', 'School_Image_EGraph']
     else:
         f_name = ['School_Gazebo_VGraph', 'School_Gazebo_EGraph']
+
     # retrieve vertices and edges
     V = ff.get_info(f_name[0], 'V')
     E = ff.get_info(f_name[1], 'E')
@@ -556,7 +761,7 @@ def plot_graph(bloat=False, number=False, edges=True, finish=False):
             E_plot.append((v1, v2))
         pf.plot_points_between_list(V, E_plot, my_color, 'o')
     else:
-        pf.plot_points(V, my_color)
+        pf.plot_points(V, my_color, 'o', 2)
 
     if number:
         # plot index + 1 at v coordinates +- offset
@@ -579,7 +784,7 @@ def plot_ss2(bloat=False, adjusted=True, my_color='k'):
     wall_nodes, wall_conn = wall_nodes_connections(school)
 
     # plot floor plan
-    pf.pf.plot_points_between_list(wall_nodes, wall_conn, my_color)
+    pf.plot_points_between_list(wall_nodes, wall_conn, my_color)
 
     return school
 
@@ -613,7 +818,7 @@ def align_pose_school():
     plot_pose(pose_raw, False, 'c')
     # plot intersection points
     pts = [xy_frame, xy_door]
-    pf.pf.plot_points_between_list(pts, [(0, 1)], 'r', 'o')
+    pf.plot_points_between_list(pts, [(0, 1)], 'r', 'o')
 
     # translate
     delta = (round(xy_door[0] - xy_frame[0], 2), round(xy_door[1] - xy_frame[1], 2))
@@ -626,7 +831,7 @@ def align_pose_school():
     or_conn = [(0, 1), (0, 2), (0, 3), (0, 4)]
 
     plot_pose(pose2, False, 'blue')
-    pf.pf.plot_points_between_list(origin, or_conn, 'gray')
+    pf.plot_points_between_list(origin, or_conn, 'gray')
 
     # plot_graph()
     lgd = ['Origin', 'School', 'Robot', 'Matching Point', 'Robot (raw)']
@@ -740,8 +945,10 @@ def compute_for_mesh():
 
 
 if __name__ == '__main__':
-    bloat = True
-    plot_all(bloat)
+    create_igraph()
+    # build_gazebo_ss2()
+    # bloat = True
+    # plot_all(bloat)
     # plot_bloat_school_pose()
     # align_pose_school()
     # plot_both_ss2()
