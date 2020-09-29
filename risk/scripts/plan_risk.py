@@ -23,6 +23,7 @@ from milp_sim.risk.scripts import risk_parameters as rp
 # -----------------------------------------------------------------------------------
 # Solver -- functions
 # -----------------------------------------------------------------------------------
+# UT - ok
 def add_kappa_point(md, my_vars: dict, vertices_t: dict, list_hat_eta: list, list_kappa: list, horizon: int):
     """
     :param md : Gurobi model
@@ -105,13 +106,13 @@ def add_kappa_prob(md, my_vars: dict, vertices_t: dict, list_H: list, list_alpha
 
 
 def add_danger_constraints(md, my_vars: dict, vertices_t: dict, danger, searchers: dict, horizon: int):
-    # point estimate
+    # point estimate (UT - ok)
     if danger.perception == danger.options[0]:
         list_kappa = rp.get_kappa(searchers)
         # list of estimated danger, list_hat_eta = [etahat_v1, etahat_v2, ..., etahat_vn]
-        list_hat_eta = danger.eta_hat
+        list_z_hat = danger.z_hat
         # add danger constraints
-        add_kappa_point(md, my_vars, vertices_t, list_hat_eta, list_kappa, horizon)
+        add_kappa_point(md, my_vars, vertices_t, list_z_hat, list_kappa, horizon)
 
     elif danger.perception == danger.options[1]:
         list_alpha = rp.get_alpha(searchers)

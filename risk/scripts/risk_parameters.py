@@ -29,7 +29,7 @@ def set_default_specs():
     # solver timeout (in sec)
     specs.set_timeout(10)
 
-    specs.update_default()
+    specs.use_default()
 
     # danger stuff (uncomment to change)
     # specs.set_threshold(value, 'kappa')
@@ -43,13 +43,13 @@ def create_danger(specs):
     """ create danger class"""
 
     g = specs.graph
-    eta_true = specs.eta_check
-    eta_priori = specs.eta_priori
-    eta_priori_hat = specs.eta_priori_hat
+    danger_true = specs.danger_true
+    danger_priori = specs.danger_priori
 
-    danger = MyDanger(g, eta_true, eta_priori)
-    danger.set_danger_thresholds(specs.kappa, specs.alpha)
+    danger = MyDanger(g, danger_true, danger_priori)
+    danger.set_thresholds(specs.kappa, specs.alpha)
     danger.set_perception(specs.perception)
+    danger.compute_Hs(2)
 
     return danger
 
@@ -79,6 +79,10 @@ def create_dict_searchers(g, v0: list, kappa: list, alpha: list, capture_range=0
     S = ext.get_set_searchers(v0)[0]
     # create dict
     searchers = {}
+
+    if len(alpha) < 1:
+        alpha = [0 for s_id in S]
+
     for s_id in S:
         v = ext.get_v0_s(v0, s_id)
         cap_s = ext.get_capture_range_s(capture_range, s_id)
@@ -140,7 +144,7 @@ def get_kappa(searchers: dict):
     return kappa_list
 
 
-def get_alpha(searchers:dict):
+def get_alpha(searchers: dict):
     """Retrieve alpha from each searcher and return as list"""
 
     alpha_list = []

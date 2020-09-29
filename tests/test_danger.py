@@ -1,270 +1,166 @@
-import milp_mespp.core.extract_info as ext
-from milp_sim.risk.classes.danger_old import MyDanger
-
-
-def get_param():
-    g = ext.get_graph_04()
-    deadline = 10
-
-    # coefficient parameters
-    default_z_mu = 0.3
-    default_z_sigma = 0.1
-    # fire (f)
-    default_f_mu = 0.2
-    default_f_sigma = 0.05
-    # spread (both)
-    lbda_mu = 0.02
-    lbda_sigma = 0.005
-    h0 = 1
+from milp_sim.risk.classes.danger import MyDanger
+from milp_sim.risk.classes.child_mespp import MyInputs2
 
-    default_list = [default_z_mu, default_z_sigma, default_f_mu, default_f_sigma, lbda_mu, lbda_sigma, h0]
 
-    return g, deadline, default_list
+def test_compute_H():
 
+    eta = [0.1, 0.3, 0.4, 0.7, 0.9]
 
-def test_init_default():
-    g, deadline, d_list = get_param()
+    a = MyDanger.sum_1(eta)
+    assert a is False
 
-    danger = MyDanger(g, deadline)
+    eta = [0.1, 0.3, 0.2, 0.2, 0.2]
+    b = MyDanger.sum_1(eta)
+    assert b is True
 
-    # test pre defined parameters
-    assert danger.levels == [1, 2, 3, 4, 5]
-    assert danger.level_label == ['Low', 'Moderate', 'High', 'Very High', 'Extreme']
-    assert danger.level_color == ['green', 'blue', 'yellow', 'orange', 'red']
-    assert danger.n_levels == 5
+    list_k = [2, 4]
+    L = [1, 2, 3, 4, 5]
 
-    assert danger.z.default_z_mu == d_list[0]
-    assert danger.z.default_z_sigma == d_list[1]
-    assert danger.z.default_f_mu == d_list[2]
-    assert danger.z.default_f_sigma == d_list[3]
-    assert danger.z.lbda_mu == d_list[4]
-    assert danger.z.lbda_sigma == d_list[5]
+    H1 = MyDanger.compute_H(eta, list_k)
+    H2 = MyDanger.compute_H(eta)
 
-    # test graph-related parameters
-    assert danger.n == 9
-    assert danger.V == [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    assert danger.tau == deadline
-    assert danger.T == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    assert H1 == [0.4, 0.8]
+    assert H2 == [0.1, 0.4, 0.6, 0.8, 1.0]
 
-    # coefficients and type
-    assert danger.z.type == 'smoke'
-    assert danger.z.xi_mu == d_list[0]
-    assert danger.z.xi_sigma == d_list[1]
 
-    # z values
-    for v in danger.V:
-        t = 0
-        assert danger.z.z_0[v] == d_list[6]
-        assert danger.z.z[v][t] == d_list[6]
-        assert danger.z.z_level[v][t] == d_list[6]
-        assert danger.z.z_only[v][t] == d_list[6]
-        assert danger.z.z_joint[v][t] == 0
+def test_z_eta_convert():
+    eta = [0.1, 0.3, 0.2, 0.2, 0.2]
+    b = MyDanger.sum_1(eta)
+    assert b is True
 
-    # coefficients and type
-    assert danger.f.type == 'fire'
-    assert danger.f.xi_mu == d_list[2]
-    assert danger.f.xi_sigma == d_list[3]
+    z1 = MyDanger.z_from_eta(eta)
+    assert z1 == 2
 
-    # f values
-    for v in danger.V:
-        t = 0
-        assert danger.f.z_0[v] == d_list[6]
-        assert danger.f.z[v][t] == d_list[6]
-        assert danger.f.z_level[v][t] == d_list[6]
-        assert danger.f.z_only[v][t] == d_list[6]
-        assert danger.f.z_joint[v][t] == 0
+    eta1 = MyDanger.eta_from_z(z1)
+    assert eta1 == [0.1, 0.6, 0.1, 0.1, 0.1]
 
 
-def test_conditional_table():
-    g, deadline, d_list = get_param()
+def test_frequentist():
 
-    danger = MyDanger(g, deadline)
+    img1 = [0.1, 0.1, 0.6, 0.1, 0.1]
+    img2 = [0.1, 0.1, 0.6, 0.1, 0.1]
+    img3 = [0.1, 0.1, 0.6, 0.1, 0.1]
 
-    value = dict([((1, 1), []), ((3, 3), []), ((5, 3), [])])
-    value[(1, 1)] = [0.96, 0.01, 0.01, 0.01, 0.01]
-    value[(3, 3)] = [0.01, 0.25, 0.49, 0.24, 0.01]
-    value[(5, 3)] = [0.01, 0.01, 0.01, 0.35, 0.62]
+    assert MyDanger.sum_1(img1) is True
+    assert MyDanger.sum_1(img2) is True
+    assert MyDanger.sum_1(img3) is True
 
-    for i in [1, 3, 5]:
-        if i == 5:
-            j = 3
-        else:
-            j = i
+    xi = dict()
+    xi[1] = [img1, img2, img3]
 
-        my_row = danger.get_row_eta(i, j)
+    eta_hat, z_hat = MyDanger.compute_frequentist(xi)
 
-        for k in [1, 2, 3, 4, 5]:
-            k_idx = ext.get_python_idx(k)
+    assert z_hat[0] == 3
+     
+    assert eta_hat[0] == [0.1, 0.1, 0.6, 0.1, 0.1]
 
-            my_prob = value[(i, j)][k_idx]
 
-            # check get_eta function
-            assert danger.get_eta(i, j, k) == my_prob
+def test_compute_apriori():
 
-            # check get_list_eta function
-            assert my_row[k] == my_prob
+    n = 4
 
-            # check p_zf
-            assert danger.p_zf[(i, j)][k_idx] == my_prob
+    # default
+    my_eta1 = None
+    eta0_0, z0_0 = MyDanger.compute_apriori(n, my_eta1)
+    assert z0_0 == [3, 3, 3, 3]
+    for v in range(n):
+        assert z0_0[v] == 3
+        assert eta0_0[v] == [0.2, 0.2, 0.2, 0.2, 0.2]
 
-            # check p_zfd
-            assert danger.p_zfd[(i, j, k)] == my_prob
+    # one danger for all vertices
+    my_eta2 = 2
+    eta0_0, z0_0 = MyDanger.compute_apriori(n, my_eta2)
+    assert z0_0 == [2, 2, 2, 2]
+    for v in range(n):
+        assert z0_0[v] == 2
+        assert eta0_0[v] == [0.1, 0.6, 0.1, 0.1, 0.1]
 
+    # one danger level for each vertex
+    my_eta3 = [1, 2, 3, 5]
+    eta0_0, z0_0 = MyDanger.compute_apriori(n, my_eta3)
+    assert z0_0 == [1, 2, 3, 5]
+    assert eta0_0[0] == [0.6, 0.1, 0.1, 0.1, 0.1]
+    assert eta0_0[1] == [0.1, 0.6, 0.1, 0.1, 0.1]
+    assert eta0_0[2] == [0.1, 0.1, 0.6, 0.1, 0.1]
+    assert eta0_0[3] == [0.1, 0.1, 0.1, 0.1, 0.6]
 
-def test_tuple_dicts():
+    # prob for each vertex
+    my_eta4 = [[0.1, 0.2, 0.3, 0.3, 0.1], [0.3, 0.1, 0.3, 0.1, 0.2], [0.1, 0.2, 0.3, 0.3, 0.1], [0.1, 0.2, 0.3, 0.3, 0.1]]
+    eta0_0, z0_0 = MyDanger.compute_apriori(n, my_eta4)
+    assert z0_0 == [4, 3, 4, 4]
+    for v in range(n):
+        assert eta0_0[v] == my_eta4[v]
 
-    list1 = [1, 2, 3, 4, 5]
-    list2 = [1, 2, 3, 4, 5]
-    list3 = [1, 2, 3, 4, 5]
+    # break ties - z == min k value
+    z = MyDanger.z_from_eta(eta0_0[0], [3, 4, 5], 2)
+    assert z == 3
 
-    dict3 = ext.create_3tuple_keys(list1, list2, list3)
-    dict2 = ext.create_2tuple_keys(list1, list2)
 
-    assert dict3[(1, 1, 1)] == -1
-    assert dict2[(1, 1)] == []
-    assert not dict2[(1, 1)]
+def get_specs():
 
+    specs = MyInputs2()
+    specs.set_graph(4)
 
-def test_dependency():
-    i = 3
-    j = 4
+    # solver parameter: central x distributed
+    specs.set_solver_type('distributed')
+    # target motion
+    specs.set_target_motion('static')
+    # searchers' detection: capture range and false negatives
+    m = 2
+    specs.set_capture_range(0)
+    specs.set_size_team(m)
+    # position
+    v0 = [1, 1]
+    specs.set_start_searchers(v0)
+    b_0 = [0.0 for i in range(10)]
+    b_0[8] = 0.5
+    b_0[6] = 0.5
+    specs.set_b0(b_0)
 
-    i1 = MyDanger.check_dependency(i, j)
-    i2 = MyDanger.check_dependency(i, j-2)
+    # time-step stuff: deadline mission (tau), planning horizon (h), re-plan frequency (theta)
+    h = 3
 
-    assert i1 == j
-    assert i2 == i
+    specs.set_all_times(h)
+    specs.set_theta(1)
+    # solver timeout (in sec)
+    specs.set_timeout(10)
 
+    # danger stuff
+    specs.set_threshold([3, 4], 'kappa')
+    eta_true = [1, 3, 3, 4, 5, 3, 4, 4, 1]
+    eta_priori = eta_true
 
-def test_highest():
+    specs.set_danger_data(eta_true, eta_priori)
 
-    my_list = [1, 2, 3, 4, 5]
+    return specs
 
-    d = ext.create_dict(my_list, 0.5)
 
-    d[2] = 0.2
-    d[3] = 0.9
-    d[4] = 0.2
-    d[5] = 0.1
+def test_create_danger():
 
-    p, H = ext.get_highest(d, my_list)
+    specs = get_specs()
+    g = specs.graph
+    danger_true = specs.danger_true
+    danger_priori = specs.danger_priori
 
-    assert p == 0.9
-    assert H == 3
+    assert danger_true == [1, 3, 3, 4, 5, 3, 4, 4, 1]
+    assert danger_priori == [1, 3, 3, 4, 5, 3, 4, 4, 1]
 
+    danger = MyDanger(g, danger_true, danger_priori)
 
-def test_sum():
-    g, deadline, d_list = get_param()
+    assert danger.n == len(g.vs)
+    assert danger.z0_0 == danger_priori
+    assert danger.z == danger_true
+    assert danger.perception == 'point'
 
-    danger = MyDanger(g, deadline)
+    assert danger.z_hat == danger_priori
 
-    var = danger.check_sum_1()
 
-    assert var is True
 
 
-def test_assign_eta():
-    g, deadline, d_list = get_param()
-    danger = MyDanger(g, deadline)
 
-    for v in danger.V:
-        for t in danger.T:
-            f1 = danger.f.z_level[v][t]
-            f2 = danger.f.get_value_vt(v, t, 0)
 
-            z1 = danger.z.z_level[v][t]
-            z2 = danger.z.get_value_vt(v, t, 0)
 
-            assert f1 == f2
-            assert z1 == z2
 
-            z1 = danger.check_dependency(z1, f1)
-
-            eta_row1 = danger.get_row_eta(z1, f1)
-            eta_row2 = danger.p_zf[(z1, f1)]
-
-            for k in danger.levels:
-                # check assignment
-                eta1 = danger.get_eta(z1, f1, k)
-                eta2 = danger.p_zfd[(z1, f1, k)]
-
-                assert eta1 == eta2
-                assert eta_row1[k] == eta_row2[k-1]
-
-            H1 = danger.H[v][t]
-            H2 = ext.get_highest(eta_row1, danger.levels)
-
-            assert H1[0] == H2[0]
-            assert H1[1] == H2[1]
-
-            z = z1
-            f = f1
-            H = H1[1]
-            p = H1[0]
-
-            if z == 1:
-                if f == 1:
-                    assert H == 1
-                    assert p == 0.96
-            # -----
-            if z == 2:
-                if f == 1:
-                    assert H == 2
-                    assert p == 0.96
-                if f == 2:
-                    assert H == 3
-                    assert p == 0.48
-            # -----
-            if z == 3:
-                if f == 1:
-                    assert H == 3
-                    assert p == 0.48
-
-                if f == 2:
-                    assert H == 3
-                    assert p == 0.48
-
-                if f == 3:
-                    assert H == 3
-                    assert p == 0.49
-            # -----
-            if z == 4:
-                if f == 1:
-                    assert H == 3
-                    assert p == 0.49
-
-                if f == 2:
-                    assert H == 4
-                    assert p == 0.5
-
-                if f == 3:
-                    assert H == 4
-                    assert p == 0.55
-
-                if f == 4:
-                    assert H == 4
-                    assert p == 0.55
-            # -----
-            if z == 5:
-                if f == 1:
-                    assert H == 5
-                    assert p == 0.5
-
-                if f == 2:
-                    assert H == 5
-                    assert p == 0.57
-
-                if f == 3:
-                    assert H == 5
-                    assert p == 0.62
-
-                if f == 4:
-                    assert H == 5
-                    assert p == 0.72
-
-                if f == 5:
-                    assert H == 5
-                    assert p == 0.82
 
 
 

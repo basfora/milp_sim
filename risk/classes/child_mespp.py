@@ -61,21 +61,19 @@ class MyInputs2(MyInputs):
 
         # a priori knowledge of danger
         # eta_priori[v] = [eta_l1,... eta_l5]
-        self.eta_priori = dict()
-        # eta_priori_hat[v] = [level], level in {1,...5}
-        self.eta_priori_hat = dict()
+        self.danger_priori = []
 
         # ground truth eta_check[v] \in {1,..5}
-        self.eta_check = dict()
+        self.danger_true = []
 
         # type of danger threshold (d - point estimate or p - probabilistic)
-        self.perception_list = MyDanger.define_danger_perceptions()
+        self.perception_list = MyDanger.define_options()
         # default is point estimate
         self.perception = self.perception_list[0]
 
         self.danger_levels, self.n_levels, self.level_label, self.level_color = MyDanger.define_danger_levels()
 
-    def update_default(self):
+    def use_default(self):
         self.update_n()
         self.default_danger_data()
         self.default_thresholds()
@@ -89,22 +87,28 @@ class MyInputs2(MyInputs):
 
     def default_danger_data(self):
 
-        self.eta_priori, self.eta_priori_hat = MyDanger.danger_priori(self.n)
-        self.eta_check = MyDanger.danger_true(self.n)
+        self.danger_priori, _ = MyDanger.compute_apriori(self.n)
+        self.danger_true, _ = MyDanger.compute_apriori(self.n)
 
-    def set_danger_data(self, eta_priori, eta_check):
-        self.eta_priori, self.eta_priori_hat = MyDanger.danger_priori(self.n, eta_priori)
-        self.eta_check = MyDanger.danger_true(self.n, eta_check)
+    # UT - ok
+    def set_danger_data(self, danger_true, danger_priori):
+        self.danger_priori = danger_priori
+        self.danger_true = danger_true
 
-    def set_danger_perception(self, my_type: str):
+    def set_danger_perception(self, my_type: str or int):
         """Choose between point, probabilistic or both"""
 
-        if my_type not in self.perception_list:
+        if isinstance(my_type, str) and my_type not in self.perception_list:
+            print('Error! Danger type not valid, please choose from %s' % str(self.perception_list))
+            exit()
+
+        if isinstance(my_type, int) and my_type > 2:
             print('Error! Danger type not valid, please choose from %s' % str(self.perception_list))
             exit()
 
         self.perception = my_type
 
+    # UT - ok
     def set_threshold(self, value: int or list or float, what='kappa'):
         my_list = []
         m = self.size_team
