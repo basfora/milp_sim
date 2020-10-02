@@ -75,6 +75,7 @@ def risk_simulator(specs, printout=True):
             print('t = %d' % t)
             sf.print_positions(searchers, target)
 
+        # get dictionary of next positions for searchers, new_pos = {s: v}
         path_next_t = pln.next_from_path(path, t_plan)
 
         # evolve searcher position

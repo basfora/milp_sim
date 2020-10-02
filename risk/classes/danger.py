@@ -143,8 +143,11 @@ class MyDanger:
 
     def set_true(self, eta_true):
 
-        # TODO may need to change here for loading from file
-        eta, z = self.compute_apriori(self.n, eta_true)
+        if isinstance(eta_true, str):
+            f_name = eta_true
+            eta, z = self.load_gnd_truth(f_name)
+        else:
+            eta, z = self.compute_apriori(self.n, eta_true)
 
         # eta = [eta_l1,... eta_l5]
         self.eta = eta
@@ -341,6 +344,26 @@ class MyDanger:
 
         return eta0_0, z0_0
 
+    @staticmethod
+    def load_gnd_truth(f_name='node_danger_dict_01.p'):
+        """Load pickle file with danger values"""
+        # load file
+        folder_path = bf.get_folder_path('milp_sim', 'scores', 'risk')
+
+        # eta_data[v] = [eta_1, ..., eta_5]
+        eta_data = df.load_data(folder_path, f_name)
+        eta_true, z_true = [], []
+
+        for v in eta_data.keys():
+            eta_v = eta_data[v][-1]
+            eta_true.append(eta_v)
+
+            # compute z_true
+            z_v = MyDanger.z_from_eta(eta_v)
+            z_true.append(z_v)
+
+        return eta_true
+
     # UT - ok
     @staticmethod
     def eta_from_z(my_level: int):
@@ -362,6 +385,9 @@ class MyDanger:
     # UT - ok
     @staticmethod
     def z_from_eta(eta_v: list, k=None, op=1):
+        """
+        op 1: conservative (max value)
+        op 2: # min threshold for team """
         z = 1
 
         if op == 1:
