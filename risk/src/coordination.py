@@ -3,7 +3,7 @@ from milp_mespp.core import create_parameters as cp
 from milp_mespp.classes.inputs import MyInputs
 from milp_mespp.core import plan_fun as pln
 from milp_mespp.core import extract_info as ext
-from milp_sim.risk.scripts import r_plotfun as rpf
+from milp_sim.risk.src import r_plotfun as rpf
 from matplotlib import pyplot as plt
 import random
 from math import sqrt

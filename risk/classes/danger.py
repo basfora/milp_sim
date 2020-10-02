@@ -1,7 +1,7 @@
 """All functions related to danger computation"""
 
 from milp_mespp.core import data_fun as df, extract_info as ext
-from milp_sim.risk.scripts import base_fun as bf
+from milp_sim.risk.src import base_fun as bf
 
 
 class MyDanger:
@@ -241,6 +241,7 @@ class MyDanger:
         return my_hat
 
     def estimate(self):
+        # TODO modify this
 
         my_hat, my_H = [], []
 
@@ -260,6 +261,11 @@ class MyDanger:
             self.H_hat = my_H
 
     def compute_Hs(self, op=1):
+        """Compute H for all vertices
+        op 1: from true distribution
+        op 2: from a priori distribution
+        op 3: from current estimated distribution
+        """
 
         Hs, eta = [], []
 

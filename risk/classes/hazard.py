@@ -1,5 +1,5 @@
 from milp_mespp.core import extract_info as ext, plot_fun as pf
-from milp_sim.risk.scripts import r_plotfun as rpf
+from milp_sim.risk.src import r_plotfun as rpf
 import pickle
 from igraph import *
 

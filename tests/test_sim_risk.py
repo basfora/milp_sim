@@ -1,4 +1,4 @@
-from milp_sim.risk.src import plan_risk as plnr
+from milp_sim.risk.src import plan_risk as plnr, sim_risk as sr
 from milp_sim.risk.classes.child_mespp import MyInputs2
 from milp_sim.risk.src import risk_parameters as rp
 
@@ -28,7 +28,7 @@ def get_specs():
     h = 3
 
     specs.set_all_times(h)
-    specs.set_theta(1)
+    # specs.set_theta(3)
     # solver timeout (in sec)
     specs.set_timeout(10)
 
@@ -121,25 +121,17 @@ def get_specs3():
     return specs
 
 
-def test_rparam():
-    specs = get_specs()
-    searchers = rp.create_searchers(specs)
-
-    assert len(searchers.keys()) == 2
-
-    for s_id in searchers.keys():
-        s = searchers[s_id]
-        assert s.kappa == specs.kappa[s_id - 1]
-
-    kappa_list = rp.get_kappa(searchers)
-    assert kappa_list == specs.kappa
-
-
 def test_run_planner():
 
     specs = get_specs()
 
-    path_list = plnr.run_planner(specs)
+    belief, target, searchers, solver_data, danger = sr.run_simulator(specs)
+
+    path_list = {}
+
+    for s_id in searchers.keys():
+        s = searchers[s_id]
+        path_list[s_id] = s.path_planned[0]
 
     assert path_list[1] == [1, 2, 3, 6]
     assert path_list[2] == [1, 4, 7, 8]
@@ -152,14 +144,3 @@ def test_run_planner():
     assert path_list[2][0] == 1
     assert path_list[2][1] == 4
     assert path_list[2][2] == 7
-
-
-
-
-
-
-
-
-
-
-

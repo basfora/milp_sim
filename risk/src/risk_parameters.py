@@ -5,7 +5,7 @@ from milp_mespp.core import create_parameters as cp
 from milp_mespp.core import extract_info as ext
 
 
-def set_default_specs():
+def default_specs():
     """Define specs for simulation of SS-2
     m = 3
     """
@@ -49,7 +49,8 @@ def create_danger(specs):
     danger = MyDanger(g, danger_true, danger_priori)
     danger.set_thresholds(specs.kappa, specs.alpha)
     danger.set_perception(specs.perception)
-    danger.compute_Hs(2)
+    priori = 2
+    danger.compute_Hs(priori)
 
     return danger
 

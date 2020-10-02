@@ -17,22 +17,22 @@ from milp_mespp.core import construct_model as cm
 from milp_mespp.core import plan_fun as pln
 from gurobipy import *
 
-from milp_sim.risk.scripts import risk_parameters as rp
+from milp_sim.risk.src import risk_parameters as rp
 
 
 # -----------------------------------------------------------------------------------
 # Solver -- functions
 # -----------------------------------------------------------------------------------
 # UT - ok
-def add_kappa_point(md, my_vars: dict, vertices_t: dict, list_hat_eta: list, list_kappa: list, horizon: int):
+def add_kappa_point(md, my_vars: dict, vertices_t: dict, list_z_hat: list, list_kappa: list, horizon: int):
     """
     :param md : Gurobi model
     :param horizon : planning horizon (deadline)
     :param my_vars : model variables
     :param vertices_t : allowed vertices
 
-    :param list_hat_eta : list of estimated danger,
-    list_hat_eta = [etahat_v1, etahat_v2, ..., etahat_vn], hat_eta in L = {1, ...5}, hat_eta = max(eta_v,l^t)
+    :param list_z_hat : list of estimated danger,
+    list_z_hat = [list_z_hat = [zhat_v1, zhat_v2, ..., zhat_vn], z_hat in L = {1, ...5}, z_hat = argmax(eta_v,l^t)
 
     :param list_kappa : list of danger threshold for each searcher,
     list_kappa = [k_s1, k_s2...k_sm], kappa in L = {1, 2, 3, 4, 5}
@@ -59,7 +59,7 @@ def add_kappa_point(md, my_vars: dict, vertices_t: dict, list_hat_eta: list, lis
             for v in v_t:
                 v_idx = ext.get_python_idx(v)
                 # estimate danger level (eta_hat in L = {1,...,5})
-                eta_hat = list_hat_eta[v_idx]
+                eta_hat = list_z_hat[v_idx]
                 md.addConstr(X[s, v, t] * eta_hat <= kappa)
 
 
@@ -109,7 +109,7 @@ def add_danger_constraints(md, my_vars: dict, vertices_t: dict, danger, searcher
     # point estimate (UT - ok)
     if danger.perception == danger.options[0]:
         list_kappa = rp.get_kappa(searchers)
-        # list of estimated danger, list_hat_eta = [etahat_v1, etahat_v2, ..., etahat_vn]
+        # list of current estimated danger, list_z_hat = [zhat_v1, zhat_v2, ..., zhat_vn]
         list_z_hat = danger.z_hat
         # add danger constraints
         add_kappa_point(md, my_vars, vertices_t, list_z_hat, list_kappa, horizon)
@@ -131,18 +131,17 @@ def run_planner(specs=None, output_data=False, printout=True):
         Return path of searchers as list of lists"""
 
     if specs is None:
-        specs = rp.set_default_specs()
+        specs = rp.default_specs()
 
     belief, searchers, solver_data, target, danger = init_wrapper(specs)
 
     # unpack parameters
     g = specs.graph
-    h = specs.horizon
     b0 = belief.new
-    M = target.unpack()
-    gamma = specs.gamma
     timeout = specs.timeout
-    solver_type = specs.solver_type
+
+    deadline, h, theta, solver_type, gamma = solver_data.unpack()
+    M = target.unpack()
 
     obj_fun, time_sol, gap, x_s, b_target, threads = run_solver(g, h, searchers, b0, M, danger, solver_type, timeout, gamma)
     searchers, path_dict = pln.update_plan(searchers, x_s)
@@ -331,7 +330,7 @@ if __name__ == "__main__":
 
     run_planner()
 
-    # my_specs = risk.scripts.risk_parameters.set_default_specs()
+    # my_specs = risk.src.risk_parameters.set_default_specs()
     # print(my_specs.kappa)
     # print(my_specs.eta_check)
 
