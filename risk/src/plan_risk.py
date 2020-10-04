@@ -64,6 +64,7 @@ def add_kappa_point(md, my_vars: dict, vertices_t: dict, list_z_hat: list, list_
 
 
 def add_kappa_prob(md, my_vars: dict, vertices_t: dict, list_H: list, list_alpha: list, horizon: int):
+    # TODO UNIT TEST!
     """
     :param md : Gurobi model
     :param horizon : planning horizon (deadline)
@@ -125,7 +126,6 @@ def add_danger_constraints(md, my_vars: dict, vertices_t: dict, danger, searcher
 # -----------------------------------------------------------------------------------
 # Plan --  functions
 # -----------------------------------------------------------------------------------
-# TODO add danger as inputs, option for point estimate or probabilistic, and call add_constraints
 def run_planner(specs=None, output_data=False, printout=True):
     """Initialize the planner the pre-set parameters
         Return path of searchers as list of lists"""
@@ -133,7 +133,7 @@ def run_planner(specs=None, output_data=False, printout=True):
     if specs is None:
         specs = rp.default_specs()
 
-    belief, searchers, solver_data, target, danger = init_wrapper(specs)
+    belief, team, solver_data, target, danger = init_wrapper(specs)
 
     # unpack parameters
     g = specs.graph
@@ -142,6 +142,8 @@ def run_planner(specs=None, output_data=False, printout=True):
 
     deadline, h, theta, solver_type, gamma = solver_data.unpack()
     M = target.unpack()
+    # retrieve dictionary of searchers for run_solver
+    searchers = team.searchers
 
     obj_fun, time_sol, gap, x_s, b_target, threads = run_solver(g, h, searchers, b0, M, danger, solver_type, timeout, gamma)
     searchers, path_dict = pln.update_plan(searchers, x_s)
@@ -243,6 +245,7 @@ def distributed_wrapper(g, horizon, searchers, b0, M_target, danger, gamma, time
     while True:
 
         for s_id in searchers.keys():
+
             # create model
             md = mf.create_model()
 
@@ -316,33 +319,19 @@ def init_wrapper(specs, sim=False):
     default: plan only"""
 
     solver_data = rp.create_solver_data(specs)
-    searchers = rp.create_searchers(specs)
+    team = rp.create_searchers(specs)
     belief = cp.create_belief(specs)
     target = cp.create_target(specs)
     danger = rp.create_danger(specs)
 
-    print('Start target: %d, searcher: %d ' % (target.current_pos, searchers[1].start))
+    print('Start target: %d, searcher: %d ' % (target.current_pos, team.searchers[1].start))
 
-    return belief, searchers, solver_data, target, danger
+    return belief, team, solver_data, target, danger
 
 
 if __name__ == "__main__":
-
+    # run planner with default specs
     run_planner()
 
-    # my_specs = risk.src.risk_parameters.set_default_specs()
-    # print(my_specs.kappa)
-    # print(my_specs.eta_check)
-
-
-    # f_name = 'node_score_dict_Fire.p'
-    # xi = MyDanger.load_scores(f_name)
-    # print('Similarity scores for node 1, image 1')
-    # print(xi[1][0])
-    #
-    # eta, eta_hat = MyDanger.compute_frequentist(xi)
-    #
-    # print('\nDanger probability for node 1: ' + str(eta[1]))
-    # print('Danger point estimate for node 1: level ' + str(eta_hat[1]))
 
 

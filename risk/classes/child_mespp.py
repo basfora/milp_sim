@@ -3,7 +3,9 @@ from milp_mespp.classes.searcher import MySearcher
 from milp_mespp.classes.inputs import MyInputs
 from milp_mespp.classes.solver_data import MySolverData
 from milp_mespp.core import extract_info as ext
+# imports from milp_sim
 from milp_sim.risk.classes.danger import MyDanger
+import copy
 
 
 class MySearcher2(MySearcher):
@@ -30,12 +32,25 @@ class MySearcher2(MySearcher):
         # store danger and beliefs values for vertices visited
         self.path_kappa = dict()
 
+        # life status
+        self.alive = True
+
+        # original id
+        self.id_0 = searcher_id
+
     def set_kappa(self, new_kappa):
         """Update kappa for searcher"""
         self.kappa = new_kappa
 
     def set_alpha(self, new_alpha):
         self.alpha = new_alpha
+
+    def set_alive(self, status=True):
+        """Set life status: alive (true) or dead (false)"""
+        self.alive = status
+
+    def set_new_id(self, s_id):
+        self.id = s_id
 
 
 class MyInputs2(MyInputs):

@@ -1,4 +1,5 @@
-from milp_sim.risk.classes.child_mespp import MyInputs2, MySearcher2, MySolverData2
+from milp_sim.risk.classes.child_mespp import MyInputs2, MySolverData2
+from milp_sim.risk.classes.team import MyTeam2
 from milp_sim.risk.classes.danger import MyDanger
 
 from milp_mespp.core import create_parameters as cp
@@ -72,35 +73,11 @@ def create_solver_data(specs):
     return solver_data
 
 
-def create_dict_searchers(g, v0: list, kappa: list, alpha: list, capture_range=0, zeta=None):
-    """Create searchers (dictionary with id number as keys).
-            Nested: initial position, capture matrices for each vertex"""
-
-    # set of searchers S = {1,..m}
-    S = ext.get_set_searchers(v0)[0]
-    # create dict
-    searchers = {}
-
-    if len(alpha) < 1:
-        alpha = [0 for s_id in S]
-
-    for s_id in S:
-        v = ext.get_v0_s(v0, s_id)
-        cap_s = ext.get_capture_range_s(capture_range, s_id)
-        zeta_s = ext.get_zeta_s(zeta, s_id)
-
-        # create each searcher
-        s = MySearcher2(s_id, v, g, cap_s, zeta_s)
-        s.set_alpha(alpha[s_id - 1])
-        s.set_kappa(kappa[s_id - 1])
-
-        # store in dictionary
-        searchers[s_id] = s
-
-    return searchers
-
-
+# -----------------------------------------
+# searchers-related functions
+# -----------------------------------------
 def create_searchers(specs):
+    # TODO move this to team class later
 
     # unpack from specs
     g = specs.graph
@@ -128,11 +105,13 @@ def create_searchers(specs):
         print("Vertex out of range, V = {1, 2...n}")
         return None
 
-    searchers = create_dict_searchers(g, v0, kappa, alpha, capture_range, zeta)
+    team = MyTeam2()
+    team.create_dict_searchers(g, v0, kappa, alpha, capture_range, zeta)
 
-    return searchers
+    return team
 
 
+# deprecated - into team
 def get_kappa(searchers: dict):
     """Retrieve kappa from each searcher and return as list"""
 
@@ -145,6 +124,7 @@ def get_kappa(searchers: dict):
     return kappa_list
 
 
+# deprecated - into team
 def get_alpha(searchers: dict):
     """Retrieve alpha from each searcher and return as list"""
 
@@ -157,6 +137,7 @@ def get_alpha(searchers: dict):
     return alpha_list
 
 
+# deprecated - into team
 def get_H(danger, searchers):
     """list_H : list of cumulative danger probability,
     list_H = [H_v1, H_v2,...,H_vn], H_v1 = [H_s1, H_s2.. H_sm], H_s1 = sum_{l=1}^k eta_l, H_s1 in [0,1]"""
@@ -174,6 +155,24 @@ def get_H(danger, searchers):
         list_H.append(H_v)
 
     return list_H
+
+
+# deprecated - into team
+def retrieve_current_positions(searchers):
+    """Retrieve current positions of searchers
+    Return: new_pos = {s: v} """
+
+    new_pos = dict()
+
+    for s_id in searchers.keys():
+        s = searchers[s_id]
+        # retrieve pos
+        v = s.current_pos
+
+        new_pos[s_id] = v
+
+    return new_pos
+
 
 
 

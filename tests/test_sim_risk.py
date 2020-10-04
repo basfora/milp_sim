@@ -121,11 +121,12 @@ def get_specs3():
     return specs
 
 
-def test_run_planner():
+def test_run_sim():
 
     specs = get_specs()
 
-    belief, target, searchers, solver_data, danger = sr.run_simulator(specs)
+    belief, target, team, solver_data, danger = sr.run_simulator(specs, False)
+    searchers = team.searchers
 
     path_list = {}
 

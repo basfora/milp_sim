@@ -1,5 +1,5 @@
 """All functions related to danger computation"""
-
+import random
 from milp_mespp.core import data_fun as df, extract_info as ext
 from milp_sim.risk.src import base_fun as bf
 
@@ -45,6 +45,10 @@ class MyDanger:
         # z = argmax eta_l \in {1,..5}
         self.z = []
         self.H = []
+
+        # probability kill
+        self.prob_kill = []
+        self.set_prob_kill()
 
         # ------------
         # estimation
@@ -294,6 +298,48 @@ class MyDanger:
 
         else:
             exit(print('Please provide thresholds'))
+
+    # -------------------
+    # Casualty functions
+    # -------------------
+    def set_prob_kill(self, prob_list=None):
+        """Set the probability of killing a robot w.r.t. to true danger level"""
+
+        if prob_list is None:
+            prob_kill = [0.1, 0.2, 0.3, 0.4, 0.5]
+        else:
+            prob_kill = prob_list
+
+        self.prob_kill = prob_kill
+
+    def is_fatal(self, v: int):
+        """Determine if robot was killed by danger
+        based on p(kill) for the true level of danger in vertex v
+        return true (was killed) or false (not killed)"""
+
+        # get level for that vertex (z_true)
+        level = self.z[v-1]
+
+        # draw your luck
+        is_fatal = self.draw_prob_kill(self.prob_kill, level)
+
+        return is_fatal
+
+    @staticmethod
+    def draw_prob_kill(prob_list: list, level: int):
+        """Draw from danger prob(kill) to see if it was a higher number (killed) or lower (not killed)"""
+
+        l_idx = level - 1
+        prob_kill = prob_list[l_idx]
+        status = False
+
+        # flip a coin
+        robot_chance = random.random()
+
+        if robot_chance <= prob_kill:
+            status = True
+
+        return status
 
     # UT - ok
     @staticmethod

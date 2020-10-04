@@ -123,7 +123,8 @@ def get_specs3():
 
 def test_rparam():
     specs = get_specs()
-    searchers = rp.create_searchers(specs)
+    team = rp.create_searchers(specs)
+    searchers = team.searchers
 
     assert len(searchers.keys()) == 2
 

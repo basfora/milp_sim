@@ -43,11 +43,49 @@ def get_specs():
     return specs
 
 
-if __name__ == "__main__":
-    # default
-    # n = 4
-    # my_eta1 = None
-    # eta0_0, z0_0 = MyDanger.compute_apriori(n, my_eta1)
+def test_create_team():
     specs = get_specs()
-    path = plnr.run_planner(specs)
+
+    team = rp.create_searchers(specs)
+
+    assert team.S == [1, 2]
+    assert team.m == 2
+    for s_id in team.S:
+        s = team.searchers[s_id]
+        assert s.capture_range == 0
+        assert s.zeta is None
+        assert s.start == 1
+        assert s.current_pos == 1
+
+        if s_id == 1:
+            assert s.kappa == 3
+        if s_id == 2:
+            assert s.kappa == 4
+
+    assert team.current_positions == {1: 1, 2: 1}
+    assert team.start_positions == [1, 1]
+
+    assert team.kappa == [3, 4]
+    assert team.kappa_original == [3, 4]
+
+    s1 = team.searchers[1]
+    s1.set_alive(False)
+
+    assert team.searchers[1].alive is False
+    assert team.searchers_original[1].alive is True
+
+    s1 = team.searchers[1]
+    s1.set_new_id(3)
+
+    assert team.searchers[1].id == 3
+    assert team.searchers_original[1].id == 1
+    assert team.searchers[1].id_0 == 1
+
+
+
+
+
+
+
+
 
