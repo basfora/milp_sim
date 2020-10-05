@@ -126,7 +126,8 @@ def add_danger_constraints(md, my_vars: dict, vertices_t: dict, danger, searcher
 # -----------------------------------------------------------------------------------
 # Plan --  functions
 # -----------------------------------------------------------------------------------
-def run_planner(specs=None, output_data=False, printout=True):
+# UT - ok
+def run_planner(specs=None, sim_data=False, printout=True):
     """Initialize the planner the pre-set parameters
         Return path of searchers as list of lists"""
 
@@ -135,36 +136,52 @@ def run_planner(specs=None, output_data=False, printout=True):
 
     belief, team, solver_data, target, danger = init_wrapper(specs)
 
+    t = 0
+    belief, target, team, solver_data, danger, inf = planner_module(belief, target, team, solver_data, danger,
+                                                                    t, sim_data)
+    path_list = team.get_path_list()
+
+    if sim_data:
+        return belief, target, team, solver_data, danger, inf
+    else:
+        return path_list
+
+
+# UT - ok
+def planner_module(belief, target, team, solver_data, danger, t=0, printout=True):
+
+    """Planner module to be used for planner only (sim_data=False) or simulation (sim_data = True)"""
+
+    inf = False
     # unpack parameters
-    g = specs.graph
     b0 = belief.new
-    timeout = specs.timeout
-
-    deadline, h, theta, solver_type, gamma = solver_data.unpack()
+    g, horizon, solver_type, timeout, gamma = solver_data.unpack_for_planner()
     M = target.unpack()
-    # retrieve dictionary of searchers for run_solver
-    searchers = team.searchers
 
-    obj_fun, time_sol, gap, x_s, b_target, threads = run_solver(g, h, searchers, b0, M, danger, solver_type, timeout, gamma)
-    searchers, path_dict = pln.update_plan(searchers, x_s)
-    path_list = ext.path_as_list(path_dict)
+    obj_fun, time_sol, gap, x_s, b_target, threads = run_solver(g, horizon, team.searchers, b0, M, danger, solver_type, timeout,
+                                                                gamma)
 
-    if output_data:
-        # save the new data
-        solver_data.store_new_data(obj_fun, time_sol, gap, threads, x_s, b_target, 0)
+    # break here if the problem was infeasible
+    if time_sol is None or gap is None or obj_fun is None:
+        inf = True
+        return belief, target, team, solver_data, danger, inf
+
+    # save the new data
+    solver_data.store_new_data(obj_fun, time_sol, gap, threads, x_s, b_target, t)
+
+    # get position of each searcher at each time-step based on x[s, v, t] variable to path [s, t] = v
+    team.searchers, path_dict = pln.update_plan(team.searchers, x_s)
 
     if printout:
-        pln.print_path(x_s)
+        path_list = ext.path_as_list(path_dict)
+        pln.print_path_list(path_list)
         if isinstance(time_sol, dict):
             t_sol = time_sol['total']
         else:
             t_sol = time_sol
         print("Solving time: %.5f" % t_sol)
 
-    if output_data:
-        return path_list, solver_data
-    else:
-        return path_list
+    return belief, target, team, solver_data, danger, inf
 
 
 def run_solver(g, horizon, searchers, b0, M_target, danger, solver_type='central', timeout=30 * 60,
@@ -314,7 +331,8 @@ def distributed_wrapper(g, horizon, searchers, b0, M_target, danger, gamma, time
                     return obj_fun_list, time_sol_list, gap_list, x_searchers, b_target, threads
 
 
-def init_wrapper(specs, sim=False):
+# UT - ok
+def init_wrapper(specs):
     """Initialize necessary classes depending on sim or plan only
     default: plan only"""
 

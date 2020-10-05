@@ -125,10 +125,14 @@ def test_run_sim():
 
     specs = get_specs()
 
-    belief, target, team, solver_data, danger = sr.run_simulator(specs, False)
+    kill = False
+    belief, target, team, solver_data, danger = sr.run_simulator(specs, kill)
     searchers = team.searchers
 
     path_list = {}
+
+    assert team.m == 2
+    assert team.S == [1, 2]
 
     for s_id in searchers.keys():
         s = searchers[s_id]
@@ -145,3 +149,4 @@ def test_run_sim():
     assert path_list[2][0] == 1
     assert path_list[2][1] == 4
     assert path_list[2][2] == 7
+

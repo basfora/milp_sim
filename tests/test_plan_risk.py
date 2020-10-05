@@ -155,7 +155,14 @@ def test_run_planner():
     assert path_list[2][2] == 7
 
 
+def test_init_wrapper():
+    specs = get_specs()
 
+    belief, team, solver_data, target, danger = plnr.init_wrapper(specs)
+
+    assert team.m == 2
+    assert team.S == [1, 2]
+    assert list(team.searchers.keys()) == [1, 2]
 
 
 

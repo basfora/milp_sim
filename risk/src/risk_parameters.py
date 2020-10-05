@@ -107,6 +107,7 @@ def create_searchers(specs):
 
     team = MyTeam2()
     team.create_dict_searchers(g, v0, kappa, alpha, capture_range, zeta)
+    team.set_danger_perception(specs.perception)
 
     return team
 
@@ -155,23 +156,6 @@ def get_H(danger, searchers):
         list_H.append(H_v)
 
     return list_H
-
-
-# deprecated - into team
-def retrieve_current_positions(searchers):
-    """Retrieve current positions of searchers
-    Return: new_pos = {s: v} """
-
-    new_pos = dict()
-
-    for s_id in searchers.keys():
-        s = searchers[s_id]
-        # retrieve pos
-        v = s.current_pos
-
-        new_pos[s_id] = v
-
-    return new_pos
 
 
 

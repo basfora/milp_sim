@@ -52,6 +52,9 @@ class MySearcher2(MySearcher):
     def set_new_id(self, s_id):
         self.id = s_id
 
+    def set_perception(self, op: str):
+        self.danger_perception = op
+
 
 class MyInputs2(MyInputs):
     """Child inputs class for milp_sim (risk)
@@ -107,6 +110,11 @@ class MyInputs2(MyInputs):
 
     # UT - ok
     def set_danger_data(self, danger_true, danger_priori):
+        """Define true danger and a priori danger
+        danger_true: str for file upload, int (same level for all vertices), list of integers,
+        or list of lists (prob distributions for each vertex)
+        danger_priori: same options, input None for default uniform probability"""
+
         self.danger_priori = danger_priori
         self.danger_true = danger_true
 

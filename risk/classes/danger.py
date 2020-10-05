@@ -303,10 +303,14 @@ class MyDanger:
     # Casualty functions
     # -------------------
     def set_prob_kill(self, prob_list=None):
-        """Set the probability of killing a robot w.r.t. to true danger level"""
+        """Set the probability of killing a robot w.r.t. to true danger level
+        Default:
+        other options: prob_kill = [0.025, 0.05, 0.075, 0.1, 0.125]
+        prob_kill = [0.1, 0.2, 0.3, 0.4, 0.5]
+        prob_kill = [0.05, 0.1, 0.15, 0.2, 0.25]"""
 
         if prob_list is None:
-            prob_kill = [0.1, 0.2, 0.3, 0.4, 0.5]
+            prob_kill = [0.025, 0.05, 0.075, 0.1, 0.125]
         else:
             prob_kill = prob_list
 
@@ -317,13 +321,43 @@ class MyDanger:
         based on p(kill) for the true level of danger in vertex v
         return true (was killed) or false (not killed)"""
 
-        # get level for that vertex (z_true)
-        level = self.z[v-1]
+        level = self.get_z(v)
 
         # draw your luck
         is_fatal = self.draw_prob_kill(self.prob_kill, level)
 
         return is_fatal
+
+    # ----------------------
+    # Retrieve functions
+    # ----------------------
+    def get_z(self, v: int):
+        # get level for that vertex (z_true)
+        v_idx = ext.get_python_idx(v)
+        true_level = self.z[v_idx]
+
+        return true_level
+
+    def get_zhat(self, v: int):
+        # get level for that vertex (z_true)
+        v_idx = ext.get_python_idx(v)
+        level_hat = self.z_hat[v_idx]
+
+        return level_hat
+
+    def get_eta(self, v: int):
+        # get level for that vertex (z_true)
+        v_idx = ext.get_python_idx(v)
+        eta = self.eta[v_idx]
+
+        return eta
+
+    def get_eta_hat(self, v: int):
+        # get level for that vertex (z_true)
+        v_idx = ext.get_python_idx(v)
+        eta_hat = self.eta_hat[v_idx]
+
+        return eta_hat
 
     @staticmethod
     def draw_prob_kill(prob_list: list, level: int):
@@ -401,7 +435,7 @@ class MyDanger:
         eta_true, z_true = [], []
 
         for v in eta_data.keys():
-            eta_v = eta_data[v][-1]
+            eta_v = eta_data[v]
             eta_true.append(eta_v)
 
             # compute z_true

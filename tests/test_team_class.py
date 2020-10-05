@@ -65,6 +65,12 @@ def test_create_team():
     assert team.current_positions == {1: 1, 2: 1}
     assert team.start_positions == [1, 1]
 
+
+def test_searchers_update():
+    specs = get_specs()
+
+    team = rp.create_searchers(specs)
+
     assert team.kappa == [3, 4]
     assert team.kappa_original == [3, 4]
 
@@ -80,6 +86,181 @@ def test_create_team():
     assert team.searchers[1].id == 3
     assert team.searchers_original[1].id == 1
     assert team.searchers[1].id_0 == 1
+
+
+def test_get_paths():
+    specs = get_specs()
+    sim_data = True
+    belief, target, team, solver_data, danger, inf = plnr.run_planner(specs, sim_data)
+
+    path_list = team.get_path_list()
+    path_dict = team.get_path()
+
+    assert path_list[1] == [1, 2, 3, 6]
+    assert path_list[2] == [1, 4, 7, 8]
+
+    assert path_dict[(1, 0)] == 1
+    assert path_dict[(1, 1)] == 2
+    assert path_dict[(1, 2)] == 3
+    assert path_dict[(1, 3)] == 6
+
+    assert path_dict[(2, 0)] == 1
+    assert path_dict[(2, 1)] == 4
+    assert path_dict[(2, 2)] == 7
+    assert path_dict[(2, 3)] == 8
+
+
+def test_decide_searchers_luck():
+    specs = get_specs()
+    v0 = [2, 3]
+    eta_true = [1, 3, 3, 4, 5, 3, 4, 4, 1]
+    specs.set_start_searchers(v0)
+
+    belief, team, solver_data, target, danger = plnr.init_wrapper(specs)
+
+    v_1, v_2 = 2, 3
+    v_1_idx, v_2_idx = 1, 2
+    assert team.searchers[1].current_pos == v_1
+    assert team.searchers[2].current_pos == v_2
+
+    assert danger.z == eta_true
+
+    assert danger.get_z(v_1) == eta_true[v_1_idx] == 3
+    assert danger.get_z(v_2) == eta_true[v_2_idx] == 3
+
+    prob_list = [0.1, 0.2, 1, 1, 1]
+    danger.set_prob_kill(prob_list)
+
+    assert danger.is_fatal(v_1) is True
+    assert danger.is_fatal(v_2) is True
+
+    assert team.alive == [1, 2]
+
+    # start the killing spree
+    t = 0
+    killed_ids = team.to_kill_or_not_to_kill(danger, t)
+
+    # when all are killed -- related vars
+    assert killed_ids == [1, 2]
+    assert team.killed == [1, 2]
+    assert team.casualties == 2
+    assert team.killed_info[1] == [v_1, t, 3, 3]
+    assert team.killed_info[2] == [v_2, t, 3, 4]
+    assert list(team.searchers_killed.keys()) == [1, 2]
+
+    # alive vars (not yet updated)
+    assert len(team.alive) == 2
+
+    # update dict
+    team.update_searchers_ids()
+    assert len(team.searchers) == 0
+
+    # update team size
+    team.update_size(len(team.searchers))
+    assert team.m == 0
+    assert team.S == []
+
+    # update alive list
+    team.update_alive()
+    assert len(team.alive) == 0
+
+    # positions (prior to update)
+    assert team.current_positions == {1: 2, 2: 3}
+    # update positions
+    team.update_pos_list()
+    assert team.current_positions == {}
+
+    # thresholds (prior to update)
+    assert team.kappa == [3, 4] == team.kappa_original
+    assert team.alpha == [0.95, 0.95] == team.alpha_original
+
+    # update thresholds
+    team.update_kappa()
+    assert team.kappa == []
+
+    # update alpha
+    team.update_alpha()
+    assert team.alpha == []
+
+
+def test_decide_searchers_luck2():
+    specs = get_specs()
+    v0 = [4, 3]
+    z_true = [4, 3]
+    eta_true = [1, 3, 3, 4, 5, 3, 4, 4, 1]
+    specs.set_start_searchers(v0)
+
+    belief, team, solver_data, target, danger = plnr.init_wrapper(specs)
+
+    v_1, v_2 = v0[0], v0[1]
+    v_1_idx, v_2_idx = v_1 - 1, v_2 - 1
+    assert team.searchers[1].current_pos == v_1
+    assert team.searchers[2].current_pos == v_2
+
+    assert danger.z == eta_true
+
+    assert danger.get_z(v_1) == eta_true[v_1_idx] == 4
+    assert danger.get_z(v_2) == eta_true[v_2_idx] == 3
+
+    prob_list = [0.1, 0.2, 0, 1, 1]
+    danger.set_prob_kill(prob_list)
+
+    # kill s_1, keep s_2
+    assert danger.is_fatal(v_1) is True
+    assert danger.is_fatal(v_2) is False
+
+    assert team.alive == [1, 2]
+
+    # start the killing spree
+    t = 0
+    killed_ids = team.to_kill_or_not_to_kill(danger, t)
+
+    # when all are killed -- related vars
+    assert killed_ids == [1]
+    assert team.killed == [1]
+    assert team.casualties == 1
+    assert team.killed_info[1] == [v_1, t, 4, 3]
+    assert list(team.searchers_killed.keys()) == [1]
+
+    # alive vars (not yet updated)
+    assert len(team.alive) == 2
+
+    # update dict
+    team.update_searchers_ids()
+    assert len(team.searchers) == 1
+    assert team.searchers[1].id == 1
+    assert team.searchers[1].id_0 == 2
+
+    # update team size
+    team.update_size(len(team.searchers))
+    assert team.m == 1
+    assert team.S == [1]
+
+    # update alive list
+    team.update_alive()
+    assert len(team.alive) == 1
+
+    # positions (prior to update)
+    assert team.current_positions == {1: 4, 2: 3}
+    # update positions
+    team.update_pos_list()
+    assert team.current_positions == {1: 3}
+
+    # thresholds (prior to update)
+    assert team.kappa == [3, 4] == team.kappa_original
+    assert team.alpha == [0.95, 0.95] == team.alpha_original
+
+    # update thresholds
+    team.update_kappa()
+    assert team.kappa == [4]
+
+    # update alpha
+    team.update_alpha()
+    assert team.alpha == [0.95]
+
+
+
+
 
 
 

@@ -16,11 +16,12 @@ class MyTeam2:
         # thresholds
         self.kappa_original = []
         self.alpha_original = []
+        self.perception = 'point'
 
         # --------------------------
         # ALIVE  -- updated and used during simulation
         # ---------------------------
-        # size, members
+        # current team size and members (lexicographic order - not original id)
         self.m = m
         self.S = ext.get_set_searchers(m)[0]
         # searcher objects (dictionary of searcher class)
@@ -51,18 +52,13 @@ class MyTeam2:
         self.current_positions = dict()
         # start positions (list)
         self.start_positions = []
+        # vertices visited (for danger estimation FOV)
+        self.visited_vertices = []
 
     def init_dict(self):
 
         for s_id in self.S:
             self.searchers[s_id] = None
-
-    def update_size(self, m_or_S: int or list):
-        S, m = ext.get_set_searchers(m_or_S)
-
-        self.S, self.m = S, m
-
-        self.alive = self.S
 
     # --------------------------
     # create searchers
@@ -75,8 +71,8 @@ class MyTeam2:
     def set_original(self):
         """Will not be changed"""
         self.searchers_original = copy.deepcopy(self.searchers)
-        self.kappa_original = copy.deepcopy(self.kappa.copy())
-        self.alpha_original = copy.deepcopy(self.alpha.copy())
+        self.kappa_original = copy.deepcopy(self.kappa)
+        self.alpha_original = copy.deepcopy(self.alpha)
 
     def create_dict_searchers(self, g, v0: list, kappa: list, alpha: list, capture_range=0, zeta=None):
         """Populate dictionary"""
@@ -104,15 +100,28 @@ class MyTeam2:
 
         # set list for handy retrieve later
         self.set_start_positions()
-        self.update_current_positions()
+        self.update_pos_list()
 
         # set original
         self.set_original()
+        self.update_alive()
 
         return self.searchers
 
+    def set_danger_perception(self, op='point'):
+
+        for s_id in self.searchers_original:
+            s = self.searchers_original[s_id]
+            s.set_perception(op)
+
+        for s_id in self.searchers:
+            s = self.searchers[s_id]
+            s.set_perception(op)
+
+        self.perception = op
+
     # -------------------------
-    # set parameters (modify class)
+    # set and update parameters (modify class)
     # -------------------------
     def set_thresholds(self, kappa: list, alpha: list):
         """Set danger threshold for all searchers"""
@@ -129,23 +138,6 @@ class MyTeam2:
             s.set_kappa(k)
             s.set_alpha(a)
 
-    def update_current_positions(self):
-        """Update current positions of searchers
-            """
-
-        new_pos = dict()
-
-        for s_id in self.S:
-            s = self.searchers[s_id]
-            # retrieve pos
-            v = s.current_pos
-
-            new_pos[s_id] = v
-
-        self.current_positions = new_pos
-
-        return self.current_positions
-
     def set_start_positions(self):
         start_pos = []
 
@@ -154,6 +146,7 @@ class MyTeam2:
             start_pos.append(s.start)
 
         self.start_positions = start_pos
+        self.update_pos_list()
 
         return self.start_positions
 
@@ -177,7 +170,103 @@ class MyTeam2:
             s = self.searchers[s_id]
             alpha_list.append(s.alpha)
 
+        self.alpha = alpha_list
+
         return self.alpha
+
+    def update_alive(self):
+        """Check for searchers alive, update list with original ids"""
+
+        alive = []
+
+        for s_alive in self.searchers.keys():
+            s = self.searchers.get(s_alive)
+
+            # sanity check
+            if s.alive:
+                alive.append(s.id_0)
+            else:
+                exit(print('Something is wrong, searchers not updated.'))
+
+        self.alive = alive
+
+        if self.S != self.alive:
+            # update current team size
+            m = len(self.alive)
+            self.update_size(m)
+
+    def update_size(self, m_or_S: int or list or None):
+
+        if m_or_S is None:
+            m_or_S = len(self.alive)
+
+        self.S, self.m = ext.get_set_searchers(m_or_S)
+
+    # --------------------------
+    # moving functions
+    # --------------------------
+    def searchers_evolve(self, new_pos):
+        """call to evolve searchers position
+        new_pos = {s: v}"""
+
+        for s_id in self.searchers.keys():
+            self.searchers[s_id].evolve_position(new_pos[s_id])
+
+        self.update_pos_list()
+        self.update_vertices_visited()
+
+        return self.searchers
+
+    def update_pos_list(self):
+        """Update current positions of searchers"""
+
+        new_pos = dict()
+
+        for s_id in self.S:
+            v = self.searchers[s_id].current_pos
+            new_pos[s_id] = v
+
+        self.current_positions = new_pos
+
+        return self.current_positions
+
+    def update_vertices_visited(self):
+        """list of vertices visited by the searchers"""
+
+        for s_id in self.searchers.keys():
+            s = self.searchers.get(s_id)
+            # retrieve last vertex
+            t, v = ext.get_last_info(s.path_taken)
+
+            if v not in self.visited_vertices:
+                self.visited_vertices.append(v)
+
+        return self.visited_vertices
+
+    # UT - OK
+    def get_path(self):
+        """Return path[s, t] = v"""
+
+        path = {}
+        for s_id in self.searchers.keys():
+            list_v = self.searchers[s_id].get_last_planned()
+
+            t = 0
+            for v in list_v:
+                path[(s_id, t)] = v
+                t += 1
+
+        return path
+
+    # UT - OK
+    def get_path_list(self):
+        """Get path, return as list for each searcher s
+            path[s] = [v0, v1, v2...vh]"""
+
+        path_dict = self.get_path()
+        path_list = ext.path_as_list(path_dict)
+
+        return path_list
 
     # --------------------------
     # danger related functions
@@ -200,8 +289,13 @@ class MyTeam2:
 
         return list_H
 
-    def decide_searchers_luck(self, danger):
-        killed = []
+    def to_kill_or_not_to_kill(self, danger, t: int):
+        """Decide which robots will die based on their
+        current vertex, true danger level of that vertex and probability of casualty
+        default: [0.1, 0.2, 0.3, 0.4, 0.5]"""
+
+        # death note list
+        killed_ids = []
 
         # go through s in searchers (alive)
         for s_id in self.searchers.keys():
@@ -217,36 +311,80 @@ class MyTeam2:
                 s.set_alive(False)
                 # retrieve original id
                 id_0 = s.id_0
-                # insert into searchers_killed
-                self.searchers_killed[id_0] = s
-                killed.append(id_0)
 
-        # pop from searchers
-        for el in killed:
-            self.searchers.pop(el)
+                # save in searchers killed (dict[original id])
+                self.searchers_killed[id_0] = copy.deepcopy(s)
+                # save in killed list (original id)
+                self.killed.append(id_0)
+                # increase number of casualties
+                self.casualties += 1
 
-        # fix any changes in id
-        self.update_searchers()
+                # killing info: vertex, time-step, true danger value, threshold
+                z = danger.get_z(v)
+                self.killed_info[id_0] = [v, t, z, s.kappa]
+
+                # insert into killed_ids list (original id)
+                killed_ids.append(id_0)
+
+        return killed_ids
+
+    def decide_searchers_luck(self, danger, t=0):
+        """Will the robots survive the danger?
+        To kill or not to kill, that is the question
+        Kill and update searchers, searchers_killed, ids, team size and alive list
+        """
+
+        # update self.killed list
+        self.to_kill_or_not_to_kill(danger, t)
+
+        # fix any changes in id based on self.killed
+        self.update_searchers_ids()
+        self.update_size(len(self.searchers))
+
+        # update list of alive searchers (original id) based on self.searchers
+        self.update_alive()
+
+        # update current positions
+        self.update_pos_list()
+
+        # update list of team's thresholds
+        self.update_alpha()
+        self.update_kappa()
 
         return self.searchers, self.searchers_killed
 
-    def update_searchers(self):
+    def update_searchers_ids(self):
         """Fix id-ing of remaining searchers after killing spree"""
 
-        new_searchers = dict()
+        current_ids = [s_id for s_id in self.searchers.keys()]
 
-        # fix the id of remaining searchers
-        old_ids = [s_id for s_id in self.searchers.keys()]
+        # pop from searchers based on killed list
+        if len(self.killed) > 0:
+            # not very efficient but sanity check
+            for s_id in current_ids:
+                id0 = self.searchers[s_id].id_0
+                if id0 in self.killed:
+                    self.searchers.pop(s_id)
+
+        # get the current id of searchers alive
+        old_ids = [s_alive for s_alive in self.searchers.keys()]
         m = len(old_ids)
 
-        new_id = 0
-        for s_id in old_ids:
-            new_id += 1
-            s = self.searchers[s_id]
-            # insert into new dict
-            new_searchers[new_id] = s
-            # update searchers id (do not touch the original id)
-            new_searchers[new_id].set_new_id(new_id)
+        # create new dict
+        new_searchers = dict()
+        if m > 0:
+
+            new_id = 0
+            for s_alive in old_ids:
+                # do a lexicographic order
+                new_id += 1
+                # get searcher that is still alive
+                s = self.searchers.get(s_alive)
+                # insert into new dict
+                s_copy = copy.deepcopy(s)
+                new_searchers[new_id] = s_copy
+                # update searchers id (do not touch the original id)
+                new_searchers[new_id].set_new_id(new_id)
 
         self.searchers = new_searchers
 
@@ -259,7 +397,7 @@ class MyTeam2:
         """Retrieve current positions of searchers
         Return:
             output_op = 1, list = [v_s1, ...v_sm]
-            output_op = 2, dict_new_pos = {s: v}"""
+            output_op = 2, dict_new_pos = {s: v} <-- path_next_t"""
         dict_new_pos = self.current_positions
 
         if output_op == 2:
