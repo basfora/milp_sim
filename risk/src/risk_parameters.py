@@ -47,10 +47,10 @@ def create_danger(specs):
     danger_true = specs.danger_true
     danger_priori = specs.danger_priori
 
-    danger = MyDanger(g, danger_true, danger_priori)
+    danger = MyDanger(g, danger_true, None, danger_priori)
     danger.set_thresholds(specs.kappa, specs.alpha)
     danger.set_perception(specs.perception)
-    priori = 2
+    priori = 'hat'
     danger.compute_Hs(priori)
 
     return danger
@@ -156,6 +156,13 @@ def get_H(danger, searchers):
         list_H.append(H_v)
 
     return list_H
+
+
+
+
+
+
+
 
 
 

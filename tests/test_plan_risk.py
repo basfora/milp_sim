@@ -1,7 +1,7 @@
-from milp_sim.risk.src import plan_risk as plnr
+from milp_sim.risk.src import plan_risk as plnr, base_fun as bf
 from milp_sim.risk.classes.child_mespp import MyInputs2
 from milp_sim.risk.src import risk_parameters as rp
-
+from milp_mespp.core import extract_info as ext
 
 def get_specs():
 
@@ -165,7 +165,18 @@ def test_init_wrapper():
     assert list(team.searchers.keys()) == [1, 2]
 
 
+def test_fov():
 
+    rooms = bf.compartments_ss2()
+    my_list = []
+    for name in rooms.keys():
+        for v in rooms[name]:
+            my_list.append(v)
+
+    my_list.sort()
+    V = ext.get_set_vertices(46)[0]
+
+    assert my_list == V
 
 
 

@@ -75,12 +75,15 @@ def risk_simulator(specs, kill=True, printout=True):
 
         # --------------------------------------
         # new [danger]
-
         # estimate danger
+        danger.estimate(team.visited_vertices)
 
         if kill:
-            # DANGER: compute prob kill, draw your luck and update searchers (if needed)
+            # compute prob kill, draw your luck and update searchers (if needed)
             team.decide_searchers_luck(danger, t)
+            # update info in danger
+            danger.update_teamsize(len(team.alive))
+            danger.set_thresholds(team.kappa, team.alpha)
 
         # retrieve path_next_t (from searchers that are still alive)
         path_next_t = team.retrieve_current_positions()

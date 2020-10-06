@@ -1,3 +1,4 @@
+import risk.src.base_fun
 from milp_sim.risk.classes.danger import MyDanger
 from milp_sim.risk.classes.child_mespp import MyInputs2
 from milp_sim.risk.src import risk_parameters as rp
@@ -48,6 +49,13 @@ if __name__ == "__main__":
     # n = 4
     # my_eta1 = None
     # eta0_0, z0_0 = MyDanger.compute_apriori(n, my_eta1)
-    specs = get_specs()
-    path = plnr.run_planner(specs)
+    # specs = get_specs()
+    # path = plnr.run_planner(specs)
+    #fov = risk.src.base_fun.fov_ss2()
+    #print(fov)
+
+    #print(fov[8])
+    eta_v = [0.1, 0.3, 0.3, 0.2, 0.2]
+    z_list = MyDanger.argmax_eta(eta_v)
+    print(z_list)
 

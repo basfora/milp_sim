@@ -105,8 +105,8 @@ class MyInputs2(MyInputs):
 
     def default_danger_data(self):
 
-        self.danger_priori, _ = MyDanger.compute_apriori(self.n)
-        self.danger_true, _ = MyDanger.compute_apriori(self.n)
+        self.danger_priori, _ = MyDanger.compute_from_value(self.n)
+        self.danger_true, _ = MyDanger.compute_from_value(self.n)
 
     # UT - ok
     def set_danger_data(self, danger_true, danger_priori):

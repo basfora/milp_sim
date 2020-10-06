@@ -434,7 +434,6 @@ def shrink_vertices(V_coord: list, E: list):
     """fitting: a_x = 1.1
     shrink by distance """
 
-
     n = len(V_coord)
 
     V = list(range(1, n + 1))
@@ -600,6 +599,7 @@ def create_igraph():
     edges = ff.get_edges('School_Gazebo_EGraph')
     g = cp.create_school_graph(edges)
     return
+
 
 # ----------------------------------------------------------------------------------
 # PLOT STUFF
