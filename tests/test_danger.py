@@ -72,6 +72,11 @@ def test_z_from_eta():
     eta_1 = MyDanger.eta_from_z(z1)
     assert eta_1 == [0.1, 0.6, 0.1, 0.1, 0.1]
 
+    eta = [0.2, 0.2, 0.2, 0.2, 0.2]
+    k = 3
+    z = MyDanger.z_from_eta(eta, 4, k)
+    assert z == 4
+
 
 def test_frequentist():
 
@@ -168,7 +173,8 @@ def get_specs():
     eta_true = [1, 3, 3, 4, 5, 3, 4, 4, 1]
     eta_priori = eta_true
 
-    specs.set_danger_data(eta_true, eta_priori)
+    specs.set_danger_data(eta_true, 'true')
+    specs.set_danger_data(eta_priori, 'priori')
 
     return specs
 
@@ -180,7 +186,8 @@ def test_create_and_estimate():
     eta_true = [1, 3, 3, 4, 5, 3, 4, 4, 1]
     eta_priori = [2, 2, 2, 3, 3, 3, 2, 2, 2]
 
-    specs.set_danger_data(eta_true, eta_priori)
+    specs.set_danger_data(eta_true, 'true')
+    specs.set_danger_data(eta_priori, 'priori')
 
     g = specs.graph
 
@@ -243,6 +250,8 @@ def test_create_and_estimate():
 
     # will set equal to the frequentist from scores
     eta_hat_3 = 1
+
+
 
 
 

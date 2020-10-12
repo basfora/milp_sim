@@ -1,6 +1,7 @@
 import os
 import pickle
 from milp_mespp.core import extract_info as ext
+import numpy as np
 
 
 def get_scripts_path():
@@ -132,7 +133,7 @@ def load_pickle_file(file_path: str):
         data = pickle.load(open(file_path, "rb"))
 
     except:
-        print('Make sure your parameters are right!')
+        print('Make sure your parameters are right! %s does not exist' % file_path)
         data = None
 
     return data
@@ -154,10 +155,30 @@ def dict_to_list(data_dict: dict):
     return data_list
 
 
+def dict_array_to_list(data_dict: dict):
+    """Convert data from a dictionary into a list (of lists if necessary)"""
+
+    keys = [key for key in data_dict.keys()]
+
+    data_list = []
+
+    for k in keys:
+        # get information
+        data = list(data_dict.get(k))
+        # append to list
+        data_list.append(data)
+
+    return data_list
+
+
 def is_list(data: dict or list):
     data_list = None
     if isinstance(data, dict):
-        data_list = dict_to_list(data)
+        k = [key for key in data.keys()]
+        if isinstance(data[k[0]], list):
+            data_list = dict_to_list(data)
+        else:
+            data_list = dict_array_to_list(data)
     elif isinstance(data, list):
         data_list = data
 
@@ -165,6 +186,71 @@ def is_list(data: dict or list):
         exit(print('Data is neither dict or list.'))
 
     return data_list
+
+
+def list_to_dict(data: list):
+
+    n = len(data)
+    V = ext.get_set_vertices(n)[0]
+
+    data_dict = {}
+    for v in V:
+        vidx = ext.get_python_idx(v)
+        data_dict[v] = data[vidx]
+
+    return data_dict
+
+
+def make_pickle_file(data, f_path: str):
+
+    my_pickle = open(f_path, "wb")
+    pickle.dump(data, my_pickle)
+    my_pickle.close()
+
+    folder_name = f_path.split('/')[-2]
+    file_name = f_path.split('/')[-1]
+    print_name = folder_name + ' - ' + file_name
+
+    print("Data saved in: ", print_name)
+    return
+
+
+def make_dir(folder_path: str):
+
+    ext.path_exists(folder_path)
+    return
+
+
+def save_sim_data(belief, target, team, solver_data, danger, specs, mission, file_name='saved_data'):
+
+    # path to pickle file to be created
+    # sub_folder = 'exp_data'
+    # parent_path = get_folder_path('milp_sim', sub_folder, 'risk')
+    # folder_path = parent_path + '/' + name_folder
+    #
+    # make_dir(folder_path)
+
+    folder_path = specs.path_folder
+    file_path = assemble_file_path(folder_path, file_name, 'pkl')
+
+    data = dict()
+    data['belief'] = belief
+    data['target'] = target
+    data['team'] = team
+    data['solver_data'] = solver_data
+    data['danger'] = danger
+    data['specs'] = specs
+    data['mission'] = mission
+
+    make_pickle_file(data, file_path)
+
+    if os.path.exists(file_path):
+        return True
+
+
+
+
+
 
 
 

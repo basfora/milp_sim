@@ -8,10 +8,12 @@ from milp_mespp.core import create_parameters as cp
 from milp_sim.scenes.class_room import MyRoom
 from milp_sim.scenes import files_fun as ff
 
+# bigger default font size
+plt.rcParams.update({'font.size': 16})
+plt.rcParams.update({'legend.fontsize': 12})
 # ieee compliant plots
 plt.rcParams.update({'text.usetex': True})
 plt.rcParams.update({'font.family': 'serif'})
-
 
 a_x = 1.1
 
@@ -604,20 +606,22 @@ def create_igraph():
 # ----------------------------------------------------------------------------------
 # PLOT STUFF
 
-def save_plot(fig_name: str, folder='figs', my_ext='.png'):
+def save_plot(fig_name: str, folder='figs', my_ext='.pdf'):
 
     fig_path = ff.get_file_path(fig_name, folder, my_ext)
 
     plt.xlabel('X [m]')
     plt.ylabel('Y [m]')
 
+    # plt.axis('off')
+
     plt.savefig(fig_path, facecolor=None, edgecolor=None,
-                orientation='landscape', transparent=True)
+                orientation='landscape', transparent=True, )
 
     plt.show()
 
 
-def finish_plot(op='all', lgd=None, my_ext='.png'):
+def finish_plot(op='all', lgd=None, my_ext='.pdf'):
     """Add title and legend
     Save plot as png"""
 
@@ -695,7 +699,7 @@ def finish_plot(op='all', lgd=None, my_ext='.png'):
     save_plot(fig_name, folder, my_ext)
 
 
-def plot_all(bloat=False):
+def plot_all(bloat=False, paper=False):
     """plot school scenario from DISC"""
 
     # SCHOOL
@@ -708,7 +712,7 @@ def plot_all(bloat=False):
 
     lgd = ['Floorplan', 'Graph']
 
-    if bloat:
+    if not bloat:
         # POSE
         f_name = 'School_RPose_Translated'
         plot_pose(f_name)
@@ -717,7 +721,11 @@ def plot_all(bloat=False):
     else:
         op = 'all_gazebo'
 
-    finish_plot(op, lgd)
+    my_ext = '.png'
+    if paper:
+        my_ext = '.pdf'
+
+    finish_plot(op, lgd, my_ext)
 
 
 def plot_pose(f_name='School_RPose', finish=False, color='b-'):
@@ -728,9 +736,9 @@ def plot_pose(f_name='School_RPose', finish=False, color='b-'):
         RPose = ff.get_info(f_name, 'R')
     else:
         RPose = f_name
-
-    R_x = [el[0] for el in RPose]
-    R_y = [el[1] for el in RPose]
+    print(len(RPose))
+    R_x = [el[0] for el in RPose[1000:]]
+    R_y = [el[1] for el in RPose[1000:]]
     plt.plot(R_x, R_y, color)
 
     if finish:
@@ -750,7 +758,7 @@ def plot_graph(bloat=False, number=False, edges=True, finish=False):
     V = ff.get_info(f_name[0], 'V')
     E = ff.get_info(f_name[1], 'E')
 
-    my_color = 'm'
+    my_color = 'k'
 
     if edges:
         # organize edges as list with python index (0...n-1)
@@ -945,10 +953,10 @@ def compute_for_mesh():
 
 
 if __name__ == '__main__':
-    create_igraph()
+    # create_igraph()
     # build_gazebo_ss2()
-    # bloat = True
-    # plot_all(bloat)
+    bloat = True
+    plot_all(bloat)
     # plot_bloat_school_pose()
     # align_pose_school()
     # plot_both_ss2()

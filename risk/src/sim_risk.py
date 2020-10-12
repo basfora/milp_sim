@@ -1,30 +1,28 @@
 from milp_sim.risk.src import plan_risk as plnr, risk_parameters as rp
 from milp_mespp.core import plan_fun as pln
 from milp_mespp.core import sim_fun as sf, extract_info as ext
+import copy
 
 
-def run_simulator(specs=None, kill=True):
+def run_simulator(specs=None):
     """Easy handle to run simulator"""
 
     if specs is None:
         specs = rp.default_specs()
 
-    belief, target, team, solver_data, danger = risk_simulator(specs, kill)
+    belief, target, team, solver_data, danger, mission = risk_simulator(specs)
 
-    return belief, target, team, solver_data, danger
+    return belief, target, team, solver_data, danger, mission
 
 
-def risk_simulator(specs, kill=True, printout=True):
+def risk_simulator(specs, printout=True):
     """ Main risk simulator function
     Input: specs from MyInputs()
     Return: belief, searchers, solver_data, target, danger"""
 
-    # extract inputs for the problem instance
-    # timeout = specs.timeout
-    # g = specs.graph
-
     # initialize classes
-    belief, team, solver_data, target, danger = plnr.init_wrapper(specs)
+    belief, team, solver_data, target, danger, mission = plnr.init_wrapper(specs)
+
     # -------------------------------------------------------------------------------
 
     deadline, theta, n = solver_data.unpack_for_sim()
@@ -47,6 +45,7 @@ def risk_simulator(specs, kill=True, printout=True):
 
             # call for planner module
             sim_data = True
+
             belief, target, team, solver_data, danger, inf = plnr.planner_module(belief, target, team, solver_data,
                                                                                  danger, t, sim_data)
 
@@ -59,13 +58,7 @@ def risk_simulator(specs, kill=True, printout=True):
 
             # reset time-steps of planning
             t_plan = 1
-
         # _________________
-
-        if printout:
-            # print current positions
-            print('t = %d' % t)
-            sf.print_positions(team.searchers, target)
 
         # get dictionary of next positions for searchers, new_pos = {s: v}
         path_next_t = pln.next_from_path(path, t_plan)
@@ -73,12 +66,15 @@ def risk_simulator(specs, kill=True, printout=True):
         # evolve searcher positions
         team.searchers_evolve(path_next_t)
 
+        # next time-step
+        t, t_plan = t + 1, t_plan + 1
+
         # --------------------------------------
         # new [danger]
         # estimate danger
         danger.estimate(team.visited_vertices)
 
-        if kill:
+        if danger.kill:
             # compute prob kill, draw your luck and update searchers (if needed)
             team.decide_searchers_luck(danger, t)
             # update info in danger
@@ -95,13 +91,10 @@ def risk_simulator(specs, kill=True, printout=True):
         # update target
         target = sf.evolve_target(target, belief.new)
 
-        # next time-step
-        t, t_plan = t + 1, t_plan + 1
-
         # --------------------------------------
         # new [check if searchers are alive]
         if len(team.alive) < 1:
-            print('Mission failed, all searchers were killed.')
+            mission.set_team_killed(True)
             break
         # --------------------------------------
 
@@ -113,14 +106,15 @@ def risk_simulator(specs, kill=True, printout=True):
             print('t = %d' % t)
             sf.print_positions(team.searchers, target)
 
-            if target.is_captured is False:
-                print('Mission failed, target was not found within deadline.')
-
         if target.is_captured:
             sf.print_capture_details(t, target, team.searchers, solver_data)
             break
 
-    return belief, target, team, solver_data, danger
+    # save mission details
+    mission.save_details(t, copy.copy(team.alive), copy.copy(target.is_captured))
+    # printout for reference
+    team.print_summary()
+    return belief, target, team, solver_data, danger, mission
 
 
 

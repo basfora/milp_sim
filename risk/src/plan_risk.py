@@ -218,8 +218,9 @@ def central_wrapper(g, horizon, searchers, b0, M_target, danger, gamma, timeout)
     # add constraints (central algorithm)
     mf.add_constraints(md, g, my_vars, searchers, vertices_t, horizon, b0, M_target)
 
-    # danger constraints
-    add_danger_constraints(md, my_vars, vertices_t, danger, searchers, horizon)
+    # apply danger constraints
+    if danger.constraints:
+        add_danger_constraints(md, my_vars, vertices_t, danger, searchers, horizon)
 
     # objective function
     mf.set_solver_parameters(md, gamma, horizon, my_vars, timeout)
@@ -275,8 +276,9 @@ def distributed_wrapper(g, horizon, searchers, b0, M_target, danger, gamma, time
 
             mf.add_constraints(md, g, my_vars, searchers, vertices_t, horizon, b0, M_target)
 
-            # danger constraints
-            add_danger_constraints(md, my_vars, vertices_t, danger, searchers, horizon)
+            if danger.constraints:
+                # apply danger constraints
+                add_danger_constraints(md, my_vars, vertices_t, danger, searchers, horizon)
 
             # objective function
             mf.set_solver_parameters(md, gamma, horizon, my_vars, timeout, pre_solver)
@@ -341,10 +343,11 @@ def init_wrapper(specs):
     belief = cp.create_belief(specs)
     target = cp.create_target(specs)
     danger = rp.create_danger(specs)
+    mission = rp.create_mission(specs)
 
     print('Start target: %d, searcher: %d ' % (target.current_pos, team.searchers[1].start))
 
-    return belief, team, solver_data, target, danger
+    return belief, team, solver_data, target, danger, mission
 
 
 if __name__ == "__main__":

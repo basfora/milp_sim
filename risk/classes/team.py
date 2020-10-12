@@ -1,4 +1,5 @@
 from milp_sim.risk.classes.child_mespp import MySearcher2
+from milp_sim.risk.src import base_fun as bf
 from milp_mespp.core import extract_info as ext
 import copy
 
@@ -17,6 +18,7 @@ class MyTeam2:
         self.kappa_original = []
         self.alpha_original = []
         self.perception = 'point'
+        self.size = m
 
         # --------------------------
         # ALIVE  -- updated and used during simulation
@@ -31,6 +33,8 @@ class MyTeam2:
         # thresholds
         self.alpha = []
         self.kappa = []
+        self.hh = False
+        self.mva = None
 
         # ---------------------------
         # KILLED  -- updated and stored during simulation for future data analysis
@@ -128,6 +132,8 @@ class MyTeam2:
         self.kappa = kappa
         self.alpha = alpha
 
+        self.is_homogeneous()
+
         for s_id in self.S:
 
             s_idx = ext.get_python_idx(s_id)
@@ -138,6 +144,22 @@ class MyTeam2:
             s.set_kappa(k)
             s.set_alpha(a)
 
+        if self.hh is False:
+            self.searchers[self.mva].set_mva()
+
+    def is_homogeneous(self):
+        unique = []
+        for k in self.kappa:
+            if k not in unique:
+                unique.append(k)
+
+        if len(unique) == 1:
+            self.hh = True
+        else:
+            self.hh = False
+            min_k = min(self.kappa)
+            self.mva = self.kappa.index(min_k) + 1
+
     def set_start_positions(self):
         start_pos = []
 
@@ -147,6 +169,7 @@ class MyTeam2:
 
         self.start_positions = start_pos
         self.update_pos_list()
+        self.update_vertices_visited()
 
         return self.start_positions
 
@@ -268,6 +291,23 @@ class MyTeam2:
 
         return path_list
 
+    def print_summary(self):
+
+        print('--\n--')
+
+        for s_id in self.searchers.keys():
+            s = self.searchers.get(s_id)
+            id_0 = s.id_0
+            path_taken = bf.dict_to_list(s.path_taken)
+            print('Searcher %d visited: %s ' % (id_0, str(path_taken)))
+
+        for id_0 in self.killed_info.keys():
+            s = self.searchers_killed[id_0]
+            path_taken = bf.dict_to_list(s.path_taken)
+            info = self.killed_info.get(id_0)
+            print('Searcher %d visited: %s ' % (id_0, str(path_taken)))
+            print('Searcher %d was killed at t = %d, vertex %d (danger level %d)' % (id_0, info[1], info[0], info[2]))
+
     # --------------------------
     # danger related functions
     # --------------------------
@@ -322,6 +362,8 @@ class MyTeam2:
                 # killing info: vertex, time-step, true danger value, threshold
                 z = danger.get_z(v)
                 self.killed_info[id_0] = [v, t, z, s.kappa]
+
+                print('Oh no! Searcher %d was killed on vertex %d (danger level %d)' % (id_0, v, z))
 
                 # insert into killed_ids list (original id)
                 killed_ids.append(id_0)

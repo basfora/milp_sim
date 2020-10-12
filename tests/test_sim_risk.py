@@ -37,7 +37,8 @@ def get_specs():
     eta_true = [1, 3, 3, 4, 5, 3, 4, 4, 1]
     eta_priori = eta_true
 
-    specs.set_danger_data(eta_true, eta_priori)
+    specs.set_danger_data(eta_true, 'true')
+    specs.set_danger_data(eta_priori, 'priori')
 
     return specs
 
@@ -75,7 +76,8 @@ def get_specs2():
     eta_check = [1, 3, 3, 4, 5, 3, 4, 4, 1]
     eta_priori = eta_check
 
-    specs.set_danger_data(eta_priori, eta_check)
+    specs.set_danger_data(eta_check, 'true')
+    specs.set_danger_data(eta_priori, 'priori')
 
     return specs
 
@@ -115,7 +117,8 @@ def get_specs3():
     eta_true = [1, 3, 3, 4, 5, 3, 4, 4, 1]
     eta_priori = eta_true
 
-    specs.set_danger_data(eta_true, eta_priori)
+    specs.set_danger_data(eta_true, 'true')
+    specs.set_danger_data(eta_priori, 'priori')
     specs.set_danger_perception(1)
 
     return specs
@@ -126,7 +129,7 @@ def test_run_sim():
     specs = get_specs()
 
     kill = False
-    belief, target, team, solver_data, danger = sr.run_simulator(specs, kill)
+    belief, target, team, solver_data, danger, mission = sr.run_simulator(specs, kill)
     searchers = team.searchers
 
     path_list = {}

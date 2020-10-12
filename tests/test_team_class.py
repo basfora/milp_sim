@@ -38,7 +38,8 @@ def get_specs():
     eta_true = [1, 3, 3, 4, 5, 3, 4, 4, 1]
     eta_priori = eta_true
 
-    specs.set_danger_data(eta_true, eta_priori)
+    specs.set_danger_data(eta_true, 'true')
+    specs.set_danger_data(eta_priori, 'priori')
 
     return specs
 
@@ -143,7 +144,7 @@ def test_decide_searchers_luck():
     # when all are killed -- related vars
     assert killed_ids == [1, 2]
     assert team.killed == [1, 2]
-    assert team.casualties == 2
+    assert team.number_casualties == 2
     assert team.killed_info[1] == [v_1, t, 3, 3]
     assert team.killed_info[2] == [v_2, t, 3, 4]
     assert list(team.searchers_killed.keys()) == [1, 2]
@@ -218,7 +219,7 @@ def test_decide_searchers_luck2():
     # when all are killed -- related vars
     assert killed_ids == [1]
     assert team.killed == [1]
-    assert team.casualties == 1
+    assert team.number_casualties == 1
     assert team.killed_info[1] == [v_1, t, 4, 3]
     assert list(team.searchers_killed.keys()) == [1]
 

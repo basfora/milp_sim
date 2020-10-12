@@ -1,4 +1,4 @@
-from milp_sim.risk.classes.child_mespp import MyInputs2, MySolverData2
+from milp_sim.risk.classes.child_mespp import MyInputs2, MySolverData2, MyMission
 from milp_sim.risk.classes.team import MyTeam2
 from milp_sim.risk.classes.danger import MyDanger
 
@@ -44,16 +44,61 @@ def create_danger(specs):
     """ create danger class"""
 
     g = specs.graph
-    danger_true = specs.danger_true
-    danger_priori = specs.danger_priori
+    # create danger class
+    danger = MyDanger(g)
 
-    danger = MyDanger(g, danger_true, None, danger_priori)
-    danger.set_thresholds(specs.kappa, specs.alpha)
+    # perception: point or prob
     danger.set_perception(specs.perception)
-    priori = 'hat'
-    danger.compute_Hs(priori)
+
+    # thresholds
+    danger.set_thresholds(specs.kappa, specs.alpha)
+
+    # kill prob
+    danger.set_kill(specs.danger_kill, specs.prob_kill)
+
+    # constraints (use or not)
+    danger.set_constraints(specs.danger_constraints)
+
+    # how to compute z from eta
+    danger.set_mva_conservative(specs.mva_conservative)
+
+    # if you are using fov
+    danger.set_use_fov(specs.fov)
+
+    # true priori knowledge
+    danger.set_true_priori(specs.true_priori)
+
+    # parse actual values or files
+    danger.set_true(specs.danger_true)
+
+    if specs.true_priori is False:
+        danger.set_priori(specs.danger_priori)
+        # if danger hat is None, it's gonna use the true values
+        danger.set_estimate(specs.danger_hat)
+    else:
+        danger.uniform_priori = False
+
+    # TODO unit test this for prob approach
+    # danger.compute_Hs(priori)
 
     return danger
+
+
+def create_mission(specs):
+    mission = MyMission()
+
+    # team info
+    mission.set_team_size(specs.size_team)
+    mission.set_team_thresholds(specs.kappa)
+
+    # planning info
+    mission.set_deadline(specs.deadline, specs.horizon)
+
+    # danger info
+    mission.define_danger(specs.danger_constraints, specs.danger_kill, specs.prob_kill)
+    mission.set_perception(specs.perception, specs.percentage_img)
+
+    return mission
 
 
 def create_solver_data(specs):

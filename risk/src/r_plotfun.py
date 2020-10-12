@@ -225,7 +225,7 @@ def save_copied_frames(path_to_folder: str, frame_idx: int, n_frames_per=60):
         plt.savefig(fname, facecolor=None, edgecolor=None, orientation='landscape', transparent=True)
 
 
-def my_hazard_labels(fig_1):
+def my_hazard_labels(fig_1, xy=None, f_size=12):
 
     levels = [1, 2, 3, 4, 5]
     # level_label = ['Low', 'Moderate', 'High', 'Very High', 'Extreme']
@@ -235,11 +235,14 @@ def my_hazard_labels(fig_1):
 
     my_font = {}
 
-    x, y = 0.31, 0.1
+    if xy is None:
+        x, y = 0.31, 0.1
+    else:
+        x, y = xy[0], xy[1]
 
     for i in levels:
 
-        my_font[i] = {'family': 'serif', 'color': level_color[i], 'weight': 'bold', 'size': 11,
+        my_font[i] = {'family': 'serif', 'color': level_color[i], 'weight': 'bold', 'size': f_size,
                 'horizontalalignment': 'center'}
 
         fig_1.text(x, y, level_label[i], fontdict=my_font[i])
