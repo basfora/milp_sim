@@ -35,7 +35,7 @@ def specs_basic():
     # ------------------------
     # pseudorandom
     # repetitions for each configuration
-    specs.set_number_of_runs(1) #000
+    specs.set_number_of_runs(1000)
     # set random seeds
     specs.set_start_seeds(2000, 6000)
 

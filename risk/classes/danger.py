@@ -240,8 +240,6 @@ class MyDanger:
             eta0_0, z0_0 = self.compute_from_value(n, eta_priori, self.z_pri_op, self.k_mva)
             H0_0 = self.compute_all_H(eta0_0)
 
-        eta0_0, z0_0, H0_0 = self.set_v0_danger(eta0_0, z0_0, H0_0)
-
         # eta_priori[v] = [eta_l1,... eta_l5]
         self.eta0_0 = eta0_0
         # z_priori[v] = [level], level in {1,...5}
@@ -253,10 +251,12 @@ class MyDanger:
         self.z_hat = z0_0
         self.H_hat = H0_0
 
+        self.set_v0_danger(eta0_0, z0_0, H0_0)
+
         # save in storage
-        self.stored_eta_hat[0] = eta0_0
-        self.stored_z_hat[0] = z0_0
-        self.stored_H_hat[0] = H0_0
+        self.stored_eta_hat[0] = copy.copy(self.eta0_0)
+        self.stored_z_hat[0] = copy.copy(z0_0)
+        self.stored_H_hat[0] = copy.copy(H0_0)
 
         return
 
@@ -303,8 +303,6 @@ class MyDanger:
             self.z = self.all_z_from_eta(self.eta, self.z_true_op,  None)
             self.H = self.compute_all_H(self.eta)
 
-            self.eta, self.z, self.H = self.set_v0_danger(self.eta, self.z, self.H)
-
         elif op == 'hat':
 
             eta_hat = bf.load_pickle_file(self.estimated_file_path)
@@ -328,9 +326,20 @@ class MyDanger:
 
         for v in self.v0:
             vidx = ext.get_python_idx(v)
-            eta[vidx] = my_eta
-            z[vidx] = my_z
-            H[vidx] = my_H
+            # true value
+            self.eta[vidx] = my_eta
+            self.z[vidx] = my_z
+            self.H[vidx] = my_H
+
+            # a priori
+            self.eta0_0[vidx] = my_eta
+            self.z0_0[vidx] = my_z
+            self.H0_0[vidx] = my_H
+
+            # estimate
+            self.eta_hat[vidx] = my_eta
+            self.z_hat[vidx] = my_z
+            self.H_hat[vidx] = my_H
 
         return eta, z, H
 

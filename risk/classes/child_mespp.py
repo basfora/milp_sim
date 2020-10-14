@@ -276,8 +276,15 @@ class MyInputs2(MyInputs):
         else:
             my_code.append('DK')
 
+        unique = []
+        for k in self.kappa:
+            if k not in unique:
+                unique.append(k)
+
         if self.homogeneous_team is True:
             my_code.append('HH')
+        elif len(unique) > 1:
+            my_code.append('HHT')
         else:
             my_code.append('HT')
 

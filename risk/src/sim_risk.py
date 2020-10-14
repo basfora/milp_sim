@@ -116,5 +116,3 @@ def risk_simulator(specs, printout=True):
     team.print_summary()
     return belief, target, team, solver_data, danger, mission
 
-
-
