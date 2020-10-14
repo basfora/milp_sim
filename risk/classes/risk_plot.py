@@ -1,5 +1,9 @@
 from matplotlib import pyplot as plt
+from milp_sim.risk.classes.stats import MyStats
+from milp_sim.risk.classes.danger import MyDanger
 import copy
+import os
+
 
 class RiskPlot:
 
@@ -35,7 +39,7 @@ class RiskPlot:
         self.x_list = list(range(1, self.n_runs + 1))
         return self.list_runs
 
-    def plot_stat(self, stat_list=None, title=None, lgd=None, rate=True):
+    def plot_stat(self, stat_list=None, title=None, lgd=None, ylabel=0):
 
         if stat_list is not None:
             self.add_stats(stat_list)
@@ -55,15 +59,48 @@ class RiskPlot:
         if lgd is not None:
             plt.legend(lgd)
 
-        ylabel = 'Rate [value/N]'
-        if rate is False:
-            y_label = 'Percentage [\%]'
+        if ylabel == 0:
+            ylabel = 'Rate [events/N]'
+        elif ylabel == 1:
+            ylabel = 'Percentage [\%]'
+        else:
+            ylabel = 'Time [time steps]'
 
         plt.xlabel('Instances [N]')
         plt.ylabel(ylabel)
         plt.show()
 
         self.clear_list()
+
+    def retrieve_data(self, folder_name: str, instance_base: str, subtitle=''):
+        """Retrieve data"""
+
+        stat = MyStats(folder_name, instance_base)
+
+        # rates to plot
+        success_rate = stat.cum_success_rate
+        failure_rate = stat.cum_fail_rate
+        cutoff_rate = stat.cum_cutoff_rate
+        casualty_rate = stat.cum_casualty_rate
+        lgd = ['Success', 'Fail', 'Deadline Reached']
+        title = 'Mission Status\n' + subtitle
+        stats_plot = [success_rate, failure_rate, cutoff_rate]
+        self.plot_stat(stats_plot, title, lgd, 1)
+
+        avg_mission_time = stat.cum_mission_time
+        avg_capture_time = stat.cum_capture_time
+        lgd = ['Mission Time', 'Capture Time']
+        title = 'Mission Times\n' + subtitle
+        stats_plot = [avg_mission_time, avg_capture_time]
+        self.plot_stat(stats_plot, title, lgd, 3)
+
+        mission_casualties = stat.cum_casualty_mission_rate
+        mva_casualties = stat.cum_casualty_mvp_rate
+        non_mva_casualties = stat.cum_casualty_not_mvp_rate
+        stats_plot = [mission_casualties, mva_casualties, non_mva_casualties]
+        lgd = ['Missions with Casualties', 'MVA', 'Non-MVA']
+        title = 'Casualties\n' + subtitle
+        self.plot_stat(stats_plot, title, lgd, 0)
 
     @staticmethod
     def plot_points_between_list(v_points, v_conn, my_color='k', my_marker=None):
@@ -124,10 +161,19 @@ class RiskPlot:
         return
 
     @staticmethod
-    def assemble_parent_name(datename: str, config: str, probname=''):
-        parent_name = datename + config + '-' + probname
-        return parent_name
+    def assemble_parent_name(datename: str, config: str, extra_id='', probname='h'):
+
+        parent_name = datename + config + '-' + probname + '-' + extra_id
+        data_saved_path = MyDanger.get_folder_path('data_saved')
+
+        parent_path = data_saved_path + '/' + parent_name
+        # check if folder exists
+        if not os.path.exists(parent_path):
+            exit(print('Parent folder %s does not exist.' % parent_name))
+
+        return parent_name, parent_path
 
     @staticmethod
     def show_me():
         plt.show()
+

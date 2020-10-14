@@ -14,7 +14,7 @@ def specs_basic():
     # solver parameter: central x distributed
     specs.set_solver_type('distributed')
     # solver timeout (in seconds)
-    specs.set_timeout(10)
+    specs.set_timeout(60)
     # ------------------------
     # time stuff: deadline mission (tau), planning horizon (h), re-plan frequency (theta)
     specs.set_horizon(14)
@@ -35,7 +35,7 @@ def specs_basic():
     # ------------------------
     # pseudorandom
     # repetitions for each configuration
-    specs.set_number_of_runs(1000)
+    specs.set_number_of_runs(1) #000
     # set random seeds
     specs.set_start_seeds(2000, 6000)
 
@@ -53,7 +53,7 @@ def specs_danger_common():
     true_file = base_name + '100'
     specs.set_danger_file(true_file, 'true')
     # ----------------------------------------
-    # estimating only with 5% images
+    # estimating danger with 5% images
     # ----------------------------------------
     per = 5
     estimated_file = base_name + str(per).zfill(2)
@@ -72,7 +72,8 @@ def specs_danger_common():
 
     # Apply prob kill (true/false)
     # hybrid prob (op 3)
-    specs.set_kill(True, 3)
+    default_prob = 3
+    specs.set_kill(True, default_prob)
     specs.set_mva_conservative(True)
     specs.set_use_fov(True)
     specs.set_true_estimate(False)
@@ -80,6 +81,7 @@ def specs_danger_common():
     return specs
 
 
+# ------------------------------------------
 def specs_true_priori():
     specs = specs_danger_common()
     # set perfect a priori knowledge
@@ -115,14 +117,113 @@ def specs_no_fov():
     return specs
 
 
+def specs_100_img():
+
+    specs = specs_danger_common()
+
+    # danger files
+    base_name = 'danger_map_NCF_freq_'
+    # true danger file
+    true_file = base_name + '100'
+    specs.set_danger_file(true_file, 'true')
+    # ----------------------------------------
+    # estimating only with 5% images
+    # ----------------------------------------
+    per = 100
+    estimated_file = base_name + str(per).zfill(2)
+    # estimated danger file
+    specs.set_danger_file(estimated_file, 'hat')
+
+    return specs
+
+
+def specs_335():
+    specs = specs_danger_common()
+
+    kappa = [3, 3, 5]
+    specs.set_threshold(kappa, 'kappa')
+
+    return specs
+
+
 # ------------------------------------------
+def specs_prob():
+    specs = specs_danger_common()
+    # threshold of searchers
+    kappa = [3, 4, 5]
+    alpha = [0.9, 0.8, 0.8]
+    specs.set_threshold(kappa, 'kappa')
+    specs.set_threshold(alpha, 'alpha')
+
+    # danger perception
+    perception = 'prob'
+    specs.set_danger_perception(perception)
+
+    return specs
+
+
+def specs_true_priori_prob():
+    specs = specs_prob()
+
+    # set perfect a priori knowledge
+    specs.set_true_know(True)
+    # and estimate
+    specs.set_true_estimate(True)
+
+    return specs
+
+
+def specs_no_fov_prob():
+    specs = specs_prob()
+
+    specs.set_use_fov(False)
+
+    return specs
+
+
+def specs_100_img_prob():
+
+    specs = specs_prob()
+
+    # danger files
+    base_name = 'danger_map_NCF_freq_'
+    # true danger file
+    true_file = base_name + '100'
+    specs.set_danger_file(true_file, 'true')
+    # ----------------------------------------
+    # estimating only with 5% images
+    # ----------------------------------------
+    per = 100
+    estimated_file = base_name + str(per).zfill(2)
+    # estimated danger file
+    specs.set_danger_file(estimated_file, 'hat')
+
+    return specs
+
+
+def specs_335_prob():
+    specs = specs_prob()
+
+    kappa = [3, 3, 5]
+    alpha = [0.9, 0.9, 0.1]
+    specs.set_threshold(kappa, 'kappa')
+    specs.set_threshold(alpha, 'alpha')
+
+    return specs
+
+
+# ------------------------------------------
+
+
 def num_sim(specs):
     # loop for number of repetitions
     for turn in specs.list_turns:
 
         specs.prep_next_turn(turn)
 
-        # run simulator
+        # try:
+
+            # run simulator
         belief, target, team, solver_data, danger, mission = sr.run_simulator(specs)
 
         # save everything as a pickle file
@@ -133,6 +234,12 @@ def num_sim(specs):
 
         # delete things
         del belief, target, team, solver_data, danger, mission
+        # except:
+        print('Error on instance %d! Jumping to next instance.' % turn)
+        # iterate run #
+        specs.update_run_number()
+        pass
+
         print("----------------------------------------------------------------------------------------------------")
         print("----------------------------------------------------------------------------------------------------")
 

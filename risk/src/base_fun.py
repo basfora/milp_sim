@@ -248,6 +248,30 @@ def save_sim_data(belief, target, team, solver_data, danger, specs, mission, fil
         return True
 
 
+# ------------------------
+# handy functions
+# -----------------------
+def smart_min(in_data):
+    if isinstance(in_data, int):
+        print('Integer input, returning it.')
+        return in_data
+    else:
+        if len(in_data) < 1:
+            return None
+        else:
+            return min(in_data)
+
+
+def smart_max(in_data):
+    if isinstance(in_data, int):
+        print('Integer input, returning it.')
+        return in_data
+    else:
+        if len(in_data) < 1:
+            return None
+        else:
+            return max(in_data)
+
 
 
 

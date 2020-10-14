@@ -27,45 +27,24 @@ if __name__ == "__main__":
     i = 1
     tic = get_timer()
 
-    """DC DK PK"""
+    """Best case - ND NC"""
     # perfect priori
-    specs = icra.specs_true_priori()
+    specs = icra.specs_no_danger()
     icra.num_sim(specs)
     # ---
     del specs
     i, tic = get_time(tic, i)
 
-    """NC DK worst case scenario"""
-    # no constraints (should be worse)
-    specs = icra.specs_no_constraints()
+    """DC DK HH"""
+    # Team make up 3-3-5
+    specs = icra.specs_335()
     icra.num_sim(specs)
     # ---
     del specs
     i, tic = get_time(tic, i)
 
-    """DC DK 5 HT"""
-    # normal estimate (5%)
-    specs = icra.specs_danger_common()
-    icra.num_sim(specs)
-    # ---
-    del specs
-    i, tic = get_time(tic, i)
 
-    """DC DK 100 HT"""
-    # no fov (just to test)
-    specs = icra.specs_100_img()
-    icra.num_sim(specs)
-    # ---
-    del specs
-    i, tic = get_time(tic, i)
 
-    """DC DK NOFOV"""
-    # no fov (just to test)
-    specs = icra.specs_no_fov()
-    icra.num_sim(specs)
-    # ---
-    del specs
-    i, tic = get_time(tic, i)
 
 
 

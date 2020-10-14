@@ -11,6 +11,7 @@ exp_12: NC DK worst case scenario, small prob"""
 
 
 def analysis_exp_1010():
+    """1009NCDKHT-b"""
 
     # code for simulation folders
     datename = ['1009', '1010']
@@ -107,7 +108,65 @@ def plot_only():
     rp.clear_list()
 
 
+def analysis_exp_1011():
+    # TODO fix naming! - parent
+    # name format 1009NCDKHT-b
+    rp = RiskPlot()
+
+    datename = ['1012']
+    config = ['DCDKHT']
+    probname = ['h']
+    pername = [100]
+    n_runs = 485
+    add = ['PK']
+
+    rp.retrieve_data(datename, config, probname, pername, n_runs, add)
+
+    return None
+
+
+def analysis_exp_1012():
+
+    rp = RiskPlot()
+
+    datename = ['1012', '1013']
+    config = ['DCDKHT', 'NCDKHT']
+    extra_id = ['PK', '100', '05', 'NA', 'NFOV']
+
+    pername = [5, 100]
+    n_runs = 1000
+    perception = 'point'
+
+    folders = []
+
+    """1012DCDKHT-h-PK"""
+    folders.append(rp.assemble_parent_name(datename[0], config[0], extra_id[0])[0])
+    """1012DCDKHT-h-100"""
+    folders.append(rp.assemble_parent_name(datename[0], config[0], extra_id[1])[0])
+    """1012DCDKHT-h-05"""
+    folders.append(rp.assemble_parent_name(datename[0], config[0], extra_id[2])[0])
+    """1012NCDKHT-h-NA"""
+    folders.append(rp.assemble_parent_name(datename[0], config[1], extra_id[3])[0])
+
+    folders.append('1013NCNKHT-n-0')
+
+    """1013NCDKHT-h-NFOV """
+    folders.append(rp.assemble_parent_name(datename[1], config[0], extra_id[4])[0])
+    #
+    subtitle = ['Perfect Knowledge', '100\% images', '5\% images', 'No Constraints', 'No Danger', 'no FOV']
+
+    # rp.retrieve_data(folders[0], 'DCDKHT_100hpoint_PK_G46Vss2_1012_', subtitle[0])
+    # rp.retrieve_data(folders[1], 'DCDKHT_100hpoint_G46Vss2_1012_', subtitle[1])
+    # rp.retrieve_data(folders[2], 'DCDKHT_05hpoint_G46Vss2_1012_', subtitle[2])
+    # rp.retrieve_data(folders[3], 'NCDKHT_NAhpoint_G46Vss2_1012_', subtitle[3])
+    # rp.retrieve_data(folders[4], 'NCNKHT_NApoint_G46Vss2_1013_', subtitle[4])
+
+    subtitle.append('no FOV')
+    rp.retrieve_data(folders[5], 'DCDKHT_05hpoint_NFOV_G46Vss2_1013_', subtitle[4])
+
+
+
 if __name__ == '__main__':
-    analysis_exp_1010()
+    analysis_exp_1012()
     # plot_only()
 

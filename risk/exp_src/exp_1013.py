@@ -1,3 +1,4 @@
+"""probabilistic approach"""
 from milp_sim.risk.exp_src import icra_default as icra
 import time
 
@@ -7,7 +8,7 @@ def get_timer():
 
 
 def get_time(tic, i=1):
-    min_ = 60
+    min_ = 3600
     toc = get_timer()
     delta_t = round((toc - tic)/min_, 2)
 
@@ -27,45 +28,44 @@ if __name__ == "__main__":
     i = 1
     tic = get_timer()
 
-    """DC DK PK"""
-    # perfect priori
-    specs = icra.specs_true_priori()
+    """Perfect a priori knowledge"""
+    specs = icra.specs_true_priori_prob()
     icra.num_sim(specs)
     # ---
     del specs
     i, tic = get_time(tic, i)
 
-    """NC DK worst case scenario"""
-    # no constraints (should be worse)
-    specs = icra.specs_no_constraints()
+    """5% images, probabilistic"""
+    specs = icra.specs_prob()
     icra.num_sim(specs)
     # ---
     del specs
     i, tic = get_time(tic, i)
 
-    """DC DK 5 HT"""
-    # normal estimate (5%)
-    specs = icra.specs_danger_common()
+    """100% images, probabilistic"""
+    specs = icra.specs_100_img_prob()
     icra.num_sim(specs)
     # ---
     del specs
     i, tic = get_time(tic, i)
 
-    """DC DK 100 HT"""
-    # no fov (just to test)
-    specs = icra.specs_100_img()
+    """No FOV, probabilistic"""
+    specs = icra.specs_no_fov_prob()
     icra.num_sim(specs)
     # ---
     del specs
     i, tic = get_time(tic, i)
 
-    """DC DK NOFOV"""
-    # no fov (just to test)
-    specs = icra.specs_no_fov()
+    """Different team makeup"""
+    # Team make up 3-3-5
+    specs = icra.specs_335_prob()
     icra.num_sim(specs)
     # ---
     del specs
     i, tic = get_time(tic, i)
+
+
+
 
 
 

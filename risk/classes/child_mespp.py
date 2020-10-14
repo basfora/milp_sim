@@ -85,6 +85,11 @@ class MyInputs2(MyInputs):
 
         self.n = 0
 
+        # type of danger threshold (d - point estimate or p - probabilistic)
+        self.perception_list = MyDanger.define_options()
+        # default is POINT estimate
+        self.perception = self.perception_list[0]
+
         # will change with every interaction
         self.name_folder = ''
         self.path_folder = ''
@@ -123,14 +128,9 @@ class MyInputs2(MyInputs):
         self.danger_hat = None
         self.percentage_img = None
 
-        # type of danger threshold (d - point estimate or p - probabilistic)
-        self.perception_list = MyDanger.define_options()
-        # default is POINT estimate
-        self.perception = self.perception_list[0]
-
         self.danger_levels, self.n_levels, self.level_label, self.level_color = MyDanger.define_danger_levels()
 
-    def set_kill(self, status=True, op=1):
+    def set_kill(self, status=True, op=3):
         self.danger_kill = status
         self.prob_id = ''
 
@@ -260,7 +260,7 @@ class MyInputs2(MyInputs):
     def set_name_folder(self, i=1):
 
         # gate date + turn (i)
-        my_date = self.monthday + '_' + str(i).zfill(3) #ext.get_date_folder(i)[0]
+        my_date = self.monthday + '_' + str(i).zfill(3)
         my_graph = (self.graph['name'].split('.'))[0]
         my_graph = my_graph.split('_')[0] + my_graph.split('_')[1]
 
@@ -487,9 +487,16 @@ class MyMission:
 
     def save_details(self, t: int, alive: list, target_captured: bool):
 
+        # casualties
         self.set_alive(alive)
+        # target captured
         self.set_captured(target_captured)
+        self.set_success(target_captured)
+
+        # end of mission
         self.set_end(t)
+        if self.success is False and self.last_t == self.deadline:
+            self.set_reached_deadline(True)
 
         self.print_details()
 
@@ -509,7 +516,6 @@ class MyMission:
 
     def set_captured(self, capture=False):
         self.target_capture = capture
-        self.set_success(True)
 
     def set_reached_deadline(self, status=False, deadline=100):
         self.deadline = deadline

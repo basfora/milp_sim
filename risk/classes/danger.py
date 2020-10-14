@@ -67,6 +67,7 @@ class MyDanger:
         self.eta = []
         # z = argmax eta_l \in {1,..5}
         self.z = []
+        # probabilistic approach H = [cum for each level]
         self.H = []
 
         # probability kill
@@ -81,6 +82,7 @@ class MyDanger:
         self.eta0_0 = []
         # z0_0[v] = level, level in {1,...5}
         self.z0_0 = []
+        self.H0_0 = []
 
         # estimates at each time step
         # eta_hat[v] = [l1,...l5]
@@ -91,13 +93,12 @@ class MyDanger:
         # for each searcher
         # H[s] = [H_s1, H_s2...H_sm] (estimate)
         self.H_hat = []
-        self.H_level_hat = []
 
         # to make getting the values easier
         # look up of estimated danger for each vertex (when robots see every image in that vertex)
         self.lookup_eta_hat = []
         # H_l[v] = [l1...l5] (true value)
-        self.lookup_H_level = []
+        self.lookup_H_hat = []
         self.lookup_z_hat = []
         # matching scores xi[v] = [[i1_1...i1_5], [i2_1,...i2_5]]
         self.xi = dict()
@@ -114,7 +115,10 @@ class MyDanger:
         # name of folder for this sim: eg smoke_G9V_grid_date#_run#
         self.folder_name = ""
         # whole path + /name_folder
-        self.path_exp_data = self.get_folder_path('exp_data')
+        f_name = 'exp_data'
+        if self.perception == 'prob':
+            f_name = 'exp_data_prob'
+        self.path_exp_data = self.get_folder_path(f_name)
 
         # -----------------------
         # danger data from files
@@ -167,10 +171,14 @@ class MyDanger:
     def set_kill(self, status=True, op=3):
         self.kill = status
 
-        if isinstance(op, int):
-            prob_kill = self.exp_prob_kill(op)
+        if status:
+            if isinstance(op, int):
+                prob_kill = self.exp_prob_kill(op)
+            else:
+                prob_kill = op
         else:
-            prob_kill = op
+            prob_kill = None
+
         self.prob_kill = prob_kill
 
     def set_perception(self, option: int or str):
@@ -223,33 +231,32 @@ class MyDanger:
 
         # use true value for priori if argument is none and true_priori is True
         if self.true_priori:
-            eta0_0, z0_0 = self.copy_true_value()
+            eta0_0, z0_0, H0_0 = self.copy_true_value()
         elif self.uniform_priori:
             eta0_0, z0_0 = self.compute_uniform(self.n, self.z_pri_op, self.k_mva)
+            H0_0 = self.compute_all_H(eta0_0)
         else:
             # input probability
             eta0_0, z0_0 = self.compute_from_value(n, eta_priori, self.z_pri_op, self.k_mva)
+            H0_0 = self.compute_all_H(eta0_0)
 
-        eta0_0, z0_0 = self.set_v0_danger(eta0_0, z0_0)
+        eta0_0, z0_0, H0_0 = self.set_v0_danger(eta0_0, z0_0, H0_0)
 
         # eta_priori[v] = [eta_l1,... eta_l5]
         self.eta0_0 = eta0_0
         # z_priori[v] = [level], level in {1,...5}
         self.z0_0 = z0_0
-
-        H_levels = []
-        for v in range(self.n):
-            H_v = self.compute_H(eta0_0[v])
-            H_levels.append(H_v)
-        self.H_level_hat = H_levels
+        self.H0_0 = H0_0
 
         # first estimate is a priori
         self.eta_hat = eta0_0
         self.z_hat = z0_0
+        self.H_hat = H0_0
 
         # save in storage
         self.stored_eta_hat[0] = eta0_0
         self.stored_z_hat[0] = z0_0
+        self.stored_H_hat[0] = H0_0
 
         return
 
@@ -294,6 +301,9 @@ class MyDanger:
             self.eta = bf.is_list(self.true_raw)
             # compute z
             self.z = self.all_z_from_eta(self.eta, self.z_true_op,  None)
+            self.H = self.compute_all_H(self.eta)
+
+            self.eta, self.z, self.H = self.set_v0_danger(self.eta, self.z, self.H)
 
         elif op == 'hat':
 
@@ -301,25 +311,28 @@ class MyDanger:
             self.estimated_raw = eta_hat
             # set lookup table
             etahat_list = bf.is_list(self.estimated_raw)
-            # make it easier
+            # make it easier, lookup eta_hat
             self.lookup_eta_hat = etahat_list
-            # compute z
+            # compute z_hat
             self.lookup_z_hat = self.all_z_from_eta(self.lookup_eta_hat, self.z_est_op, self.k_mva)
-            # self.set_lookup_hat(etahat_list)
+            # compute H_hat
+            self.lookup_H_hat = self.compute_all_H(self.lookup_eta_hat)
 
         return
 
-    def set_v0_danger(self, eta, z):
+    def set_v0_danger(self, eta, z, H):
 
         my_eta = [1, 0, 0, 0, 0]
         my_z = 1
+        my_H = [1, 0, 0, 0, 0]
 
         for v in self.v0:
             vidx = ext.get_python_idx(v)
             eta[vidx] = my_eta
             z[vidx] = my_z
+            H[vidx] = my_H
 
-        return eta, z
+        return eta, z, H
 
     def estimated_from_file(self, f_name: str, percentage: float, extension='pkl'):
         # point to file
@@ -346,23 +359,26 @@ class MyDanger:
         """Mostly for testing purposes"""
 
         z_hat = None
+        H_hat = None
 
         if my_eta_hat is None:
             # make it equal to gnd truth
-            eta_hat, z_hat = self.copy_true_value()
+            eta_hat, z_hat, H_hat = self.copy_true_value()
         elif my_eta_hat == 0:
             eta_hat = copy.copy(self.eta0_0)
             z_hat = copy.copy(self.z0_0)
+            H_hat = copy.copy(self.H0_0)
         elif my_eta_hat == 1:
             # frequentist (just for testing), computing from matching scores
             xi = self.xi
             eta_hat, z_hat = self.compute_frequentist(xi)
+            H_hat = self.compute_all_H(eta_hat)
         else:
             eta_hat = bf.is_list(my_eta_hat)
 
-        self.set_lookup_hat(eta_hat, z_hat)
+        self.set_lookup_hat(eta_hat, z_hat, H_hat)
 
-    def set_lookup_hat(self, eta_hat, z_hat=None):
+    def set_lookup_hat(self, eta_hat, z_hat=None, H_hat=None):
         """Pre-Compute the estimated eta and z for all vertices,
          considering robot is at that vertex"""
 
@@ -376,8 +392,8 @@ class MyDanger:
         else:
             self.lookup_z_hat = z_hat
 
-        # cumulative distribution
-        self.lookup_H_level = self.compute_all_H(eta_hat)
+        # cumulative distribution for each level
+        self.lookup_H_hat = H_hat
 
     def set_scores(self, xi: str or dict):
 
@@ -417,8 +433,6 @@ class MyDanger:
         self.kappa = k
         self.alpha = a
 
-        self.k_mva = min(k)
-
     def save_estimate(self, eta_hat=None, z_hat=None, H_hat=None, t=None):
         """Save estimated values for time step"""
 
@@ -454,13 +468,13 @@ class MyDanger:
         """
 
         if self.true_priori:
-            eta_hat, z_hat = self.perfect_estimate()
+            eta_hat, z_hat, H_hat = self.perfect_estimate()
         elif self.use_fov is False:
-            eta_hat, z_hat = self.no_fov_estimate(visited_vertices)
+            eta_hat, z_hat, H_hat = self.no_fov_estimate(visited_vertices)
         else:
-            eta_hat, z_hat = self.normal_estimate(visited_vertices)
+            eta_hat, z_hat, H_hat = self.normal_estimate(visited_vertices)
 
-        self.update_estimate(eta_hat, z_hat)
+        self.update_estimate(eta_hat, z_hat, H_hat)
         self.save_estimate()
 
     def normal_estimate(self, visited_vertices: list):
@@ -476,16 +490,18 @@ class MyDanger:
         # new update
         eta_hat = []
         z_hat = []
+        H_hat = []
 
         # loop through vertices
         for v in self.V:
             # get priori (if no info available, it will keep it)
             etahat_v = self.get_etahat(v)
             zhat_v = self.get_zhat(v)
+            Hhat_v = self.get_Hhat(v)
 
             # if vertex was visited, get estimated from lookup table
             if v in visited_vertices:
-                etahat_v, zhat_v = self.get_from_lookup(v)
+                etahat_v, zhat_v, Hhat_v = self.get_from_lookup(v)
 
             # if not, check if is in line of sight of a visited vertex (closest one)
             else:
@@ -503,14 +519,15 @@ class MyDanger:
                             continue
                         else:
                             # if it was, set the estimate for this vertex equal to its neighbor
-                            etahat_v, zhat_v = self.get_from_lookup(u)
+                            etahat_v, zhat_v, Hhat_v = self.get_from_lookup(u)
                             break
 
             # append to estimated list
             eta_hat.append(etahat_v)
             z_hat.append(zhat_v)
+            H_hat.append(Hhat_v)
 
-        return eta_hat, z_hat
+        return eta_hat, z_hat, H_hat
 
     def perfect_estimate(self):
         """Estimate will always be the perfect danger value"""
@@ -518,8 +535,9 @@ class MyDanger:
         # new update
         eta_hat = copy.copy(self.eta)
         z_hat = copy.copy(self.z)
+        H_hat = copy.copy(self.H)
 
-        return eta_hat, z_hat
+        return eta_hat, z_hat, H_hat
 
     def no_fov_estimate(self, visited_vertices: list):
         """Update danger values only of visited vertices"""
@@ -527,21 +545,23 @@ class MyDanger:
         # new update
         eta_hat = []
         z_hat = []
+        H_hat = []
 
         # loop through vertices
         for v in self.V:
             # get priori (if no info available, it will keep it)
-            etahat_v, zhat_v = self.get_priori(v)
+            etahat_v, zhat_v, Hhat_v = self.get_priori(v)
 
             # if vertex was visited, get estimated from lookup table
             if v in visited_vertices:
-                etahat_v, zhat_v = self.get_from_lookup(v)
+                etahat_v, zhat_v, Hhat_v = self.get_from_lookup(v)
 
             # append to estimated list
             eta_hat.append(etahat_v)
             z_hat.append(zhat_v)
+            H_hat.append(Hhat_v)
 
-        return eta_hat, z_hat
+        return eta_hat, z_hat, H_hat
 
     # -------------------
     # Casualty functions
@@ -614,8 +634,9 @@ class MyDanger:
     def copy_true_value(self):
         eta = copy.deepcopy(self.eta)
         z = copy.deepcopy(self.z)
+        H = copy.deepcopy(self.H)
 
-        return eta, z
+        return eta, z, H
 
     def get_z(self, v: int):
         # get level for that vertex (z_true)
@@ -636,8 +657,14 @@ class MyDanger:
 
         z0 = self.z0_0[v_idx]
         eta0 = self.eta0_0[v_idx]
+        H0_0 = self.H0_0[v_idx]
 
-        return eta0, z0
+        return eta0, z0, H0_0
+
+    def get_H(self, v: int):
+        v_idx = ext.get_python_idx(v)
+        true_H = self.H[v_idx]
+        return true_H
 
     # UT - ok
     def get_zhat(self, v: int):
@@ -654,13 +681,21 @@ class MyDanger:
 
         return eta_hat
 
+    def get_Hhat(self, v: int):
+        # get level for that vertex (z_hat)
+        v_idx = ext.get_python_idx(v)
+        H_hat = self.H_hat[v_idx]
+
+        return H_hat
+
     def get_from_lookup(self, v: int):
         # get level for that vertex (eta_hat)
         v_idx = ext.get_python_idx(v)
         eta_hat = self.lookup_eta_hat[v_idx]
         z_hat = self.lookup_z_hat[v_idx]
+        H_hat = self.lookup_H_hat[v_idx]
 
-        return eta_hat, z_hat
+        return eta_hat, z_hat, H_hat
 
     def get_vertex_hat(self, v: int):
         """Retrieve estimated danger for that vertex
@@ -931,14 +966,18 @@ class MyDanger:
 
         H = []
 
+        levels = [1, 2, 3, 4, 5]
+
         if kappa is None:
-            k_list = [level for level in range(1, 6)]
+            k_list = [level for level in levels]
         else:
             k_list = kappa
 
         for level in k_list:
             list_aux = [eta_v[i] for i in range(level)]
-            H.append(round(sum(list_aux), 4))
+            H.append(round(sum(list_aux), 3))
+
+        H[-1] = 1.0
 
         return H
 

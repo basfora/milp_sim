@@ -74,7 +74,7 @@ class RiskPlot:
         """Name of source files for danger data"""
 
         if list_files is None:
-            list_files = ['danger_map_freq_25, danger_map_freq_100']
+            list_files = ['danger_map_NCF_freq_05', 'danger_map_NCF_freq_100']
 
         self.danger_files = list_files
         self.load_eta_values()
@@ -111,7 +111,7 @@ class RiskPlot:
 
         for per in self.eta_values.keys():
             eta = self.eta_values.get(per)
-            z = MyDanger.all_z_from_eta(eta)
+            z = MyDanger.all_z_from_eta(eta, 1)
             self.z_values[per] = z
 
     def print_danger_data(self):
@@ -393,20 +393,15 @@ class RiskPlot:
         print('Mission success: ' + str(percentage_success))
 
 
-
-
-
-
-
-
 if __name__ == "__main__":
 
     risk_data = RiskPlot()
     risk_data.set_danger_files()
+    risk_data.plot_graph_school()
     #
-    parent_folder = '10-09-NC-NK-2'
-    start_name = 'NC_NK_point'
-    date_name = '1009'
-    #
-    risk_data.collect_data(parent_folder, start_name, date_name)
-    risk_data.get_stats()
+    # parent_folder = '10-09-NC-NK-2'
+    # start_name = 'NC_NK_point'
+    # date_name = '1009'
+    # #
+    # risk_data.collect_data(parent_folder, start_name, date_name)
+    # risk_data.get_stats()

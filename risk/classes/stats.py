@@ -23,27 +23,34 @@ class MyStats:
     """Class to make computing stats easier for each configuration (e.g. NC DK worst case scenario, big prob)
     """
 
-    def __init__(self, folder_name: str, n_runs=1000, img_per=100):
+    def __init__(self, folder_name: str, instance_base: str, n_runs=1000): # perception: str, n_runs=1000, probname='h', etra=''):
 
         # to id
         self.parent_name = folder_name
-        self.img_per = self.get_img_per(img_per)
+        self.instance_base = instance_base
+
+        # config name, e.g. NCDK
+        self.config = folder_name.split('-')[0][4:]
+        self.img_per = folder_name.split('-')[-1]
+
+        # self.img_per = self.get_img_per(img_per)
         self.print_name(folder_name, '--\nStats for')
         self.print_name(self.img_per, 'Percentage images: ', False)
-        # config name, e.g. NCDK
-        self.id = folder_name.split('-')[0][4:]
-        # path to parent folder (e.g. 1010DCDK-b)
-        self.date_name = folder_name[0:4]
-        self.p_type = folder_name.split('-')[-1]
+
+        # # path to parent folder (e.g. 1010DCDK-b)
+        # self.date_name = folder_name[0:4]
+        # self.p_type = folder_name.split('-')[-2]
+        # self.extra = folder_name.split('-')[-1]
         self.parent_path = self.get_parent_path(folder_name)
 
         # to save
         self.save_path = self.get_save_path(folder_name + '-' + self.img_per)
 
         # common
-        self.perception = 'point'
-        self.middle_name = ''
-        self.assemble_middle()
+        self.graph_name = 'G46Vss2'
+        # self.perception = perception
+        self.middle_name = instance_base
+        # self.assemble_middle()
         self.f_name = 'saved_data.pkl'
 
         self.n_runs = 0
@@ -175,7 +182,9 @@ class MyStats:
 
     def assemble_middle(self):
         prob = self.p_type
-        graphname = prob + self.perception + '_G46V_ss2_'
+        add = '_' + self.extra
+
+        graphname = prob + self.perception + add +'_G46Vss2_'
         my_name = '_' + str(self.img_per).zfill(2) + graphname + self.date_name + '_'
 
         self.middle_name = my_name
@@ -201,11 +210,11 @@ class MyStats:
     """Called during data collection"""
     def assemble_instance_name(self, turn, change_date=None):
 
-        if change_date is not None:
-            self.date_name = change_date
-            self.assemble_middle()
+        # if change_date is not None:
+        #     self.date_name = change_date
+        #     self.assemble_middle()
 
-        instance_name = self.id + self.middle_name + str(turn).zfill(3)
+        instance_name = self.instance_base + str(turn).zfill(3)
         self.instances_names.append(instance_name)
         return instance_name
 
@@ -220,7 +229,7 @@ class MyStats:
     """Collecting data from instances"""
     def collect_data(self):
 
-        self.print_name(self.id, 'Collecting')
+        self.print_name(self.config, 'Collecting')
         self.print_dots()
         n_ok = 0
 
@@ -408,13 +417,13 @@ class MyStats:
         self.danger_constraints = ins.danger.constraints
 
         # sanity check
-        if 'DK' in self.id:
+        if 'DK' in self.config:
             assert self.danger_kill is True
-        elif 'NK' in self.id:
+        elif 'NK' in self.config:
             assert self.danger_kill is False
-        if 'DC' in self.id:
+        if 'DC' in self.config:
             assert self.danger_constraints is True
-        elif 'NC' in self.id:
+        elif 'NC' in self.config:
             assert self.danger_constraints is False
 
         # team parameters
@@ -542,7 +551,7 @@ class MyInstance:
 
     def set_mission_status(self):
 
-        if self.mission.success:
+        if self.target.is_captured:
             # successful
             self.success = True
             self.end_time = copy.deepcopy(self.target.capture_time)
@@ -550,13 +559,15 @@ class MyInstance:
             # failed
             self.success = False
             # agents killed
-            if self.mission.team_killed:
+            if len(self.team.alive) < 1:
                 self.abort = True
                 self.end_time = self.mission.last_t
-            else:
+            elif self.mission.last_t == self.specs.deadline:
                 # reached deadline
                 self.cutoff = True
                 self.end_time = self.mission.deadline
+            else:
+                exit(print('Check instance %d cause of failure' % self.id))
 
     def set_casualties(self):
 

@@ -84,8 +84,8 @@ def test_searchers_update():
     s1 = team.searchers[1]
     s1.set_new_id(3)
 
-    assert team.searchers[1].id == 3
-    assert team.searchers_original[1].id == 1
+    assert team.searchers[1].config == 3
+    assert team.searchers_original[1].config == 1
     assert team.searchers[1].id_0 == 1
 
 
@@ -229,7 +229,7 @@ def test_decide_searchers_luck2():
     # update dict
     team.update_searchers_ids()
     assert len(team.searchers) == 1
-    assert team.searchers[1].id == 1
+    assert team.searchers[1].config == 1
     assert team.searchers[1].id_0 == 2
 
     # update team size

@@ -59,8 +59,8 @@ def add_kappa_point(md, my_vars: dict, vertices_t: dict, list_z_hat: list, list_
             for v in v_t:
                 v_idx = ext.get_python_idx(v)
                 # estimate danger level (eta_hat in L = {1,...,5})
-                eta_hat = list_z_hat[v_idx]
-                md.addConstr(X[s, v, t] * eta_hat <= kappa)
+                z_hat = list_z_hat[v_idx]
+                md.addConstr(X[s, v, t] * z_hat <= kappa)
 
 
 def add_kappa_prob(md, my_vars: dict, vertices_t: dict, list_H: list, list_alpha: list, horizon: int):
@@ -103,7 +103,7 @@ def add_kappa_prob(md, my_vars: dict, vertices_t: dict, list_H: list, list_alpha
 
                 # danger threshold - cumulative - for searcher s
                 H_s = H_v[s_idx]
-                md.addConstr(H_s >= X[s, v, t] * alpha)
+                md.addConstr(X[s, v, t] * alpha <= H_s)
 
 
 def add_danger_constraints(md, my_vars: dict, vertices_t: dict, danger, searchers: dict, horizon: int):
@@ -117,7 +117,10 @@ def add_danger_constraints(md, my_vars: dict, vertices_t: dict, danger, searcher
 
     elif danger.perception == danger.options[1]:
         list_alpha = rp.get_alpha(searchers)
-        list_H = rp.get_H(danger, searchers)
+        list_kappa = rp.get_kappa(searchers)
+        list_eta = danger.eta_hat
+        # prep list_H with kappa
+        list_H = danger.compute_all_H(list_eta, list_kappa)
 
         # add danger constraints
         add_kappa_prob(md, my_vars, vertices_t, list_H, list_alpha, horizon)
@@ -134,7 +137,7 @@ def run_planner(specs=None, sim_data=False, printout=True):
     if specs is None:
         specs = rp.default_specs()
 
-    belief, team, solver_data, target, danger = init_wrapper(specs)
+    belief, team, solver_data, target, danger, mission = init_wrapper(specs)
 
     t = 0
     belief, target, team, solver_data, danger, inf = planner_module(belief, target, team, solver_data, danger,
