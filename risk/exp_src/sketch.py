@@ -100,6 +100,17 @@ def sam_debug():
     print(len(path_taken[1]))
 
 
+def compute_avg(score: list):
+    levels = [1, 2, 3, 4, 5]
+    nrm = sum(score)
+    my_sum = 0
+    i = 0
+    for s in score:
+        my_sum += s * levels[i]
+        i += 1
+    d = round(my_sum/nrm, 2)
+    return d
+
 if __name__ == "__main__":
     # default
     # MyDanger.fake_data_for_testing()
@@ -115,8 +126,34 @@ if __name__ == "__main__":
     # for prob in prob_kill:
     #     prob_per = round(100 * prob, 3)
     #     print(str(prob_per))
-    A = np.array([1, 2])
-    print(A[1])
+    # A = np.array([1, 2])
+    # print(A[1])
+    f_path = MyDanger.get_folder_path('danger_files/scores')
+    f_name = f_path + '/' + 'node_score_final_dict_Fire.p'
+
+    f_path_danger = MyDanger.get_folder_path('danger_files')
+    f_name_danger = f_path_danger + '/' + 'danger_map_NCF_freq_100.pkl'
+    eta = bf.load_pickle_file(f_name_danger)
+    xi = bf.load_pickle_file(f_name)
+
+    levels = [1, 2, 3, 4, 5]
+
+    for v in range(1, len(xi) + 1):
+        xi_v = xi[v]
+        print('There is %d images in this vertex' % len(xi_v))
+        img_d = []
+        desc = []
+        for img in xi_v:
+            d_im = []
+            desc.append(img[1])
+            for cond in img:
+                d = compute_avg(img[1])
+                img_d.append(d)
+                d_im.append(d)
+        # d_vertex = [sum(img_d)/len(img_d)
+        if v > 40:
+            print('Vertex %d, scores = %s' %(v, str(desc)))
+            print(eta[v])
 
 
 

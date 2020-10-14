@@ -99,7 +99,6 @@ class RiskPlot:
         self.v_sort = {per: [] for per in self.percentages}
         self.z_sort = {per: [] for per in self.percentages}
 
-
     def load_eta_values(self):
         """load the actual values from file"""
 
@@ -256,7 +255,7 @@ class RiskPlot:
                 self.specs[per, n_file] = data['specs']
 
         self.prob_kill = [round(l * 100, 2) for l in self.danger[per, n_file].prob_kill]
-        self.k_team = self.team[per, n_file].kappa_original
+        self.k_team = self.team[per, n_file].kappa
 
     def get_stats(self):
 
@@ -397,6 +396,7 @@ if __name__ == "__main__":
 
     risk_data = RiskPlot()
     risk_data.set_danger_files()
+    risk_data.print_danger_data()
     risk_data.plot_graph_school()
     #
     # parent_folder = '10-09-NC-NK-2'

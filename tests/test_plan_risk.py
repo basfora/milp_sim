@@ -164,7 +164,7 @@ def test_init_wrapper():
 
     belief, team, solver_data, target, danger = plnr.init_wrapper(specs)
 
-    assert team.m == 2
+    assert team.m_input == 2
     assert team.S == [1, 2]
     assert list(team.searchers.keys()) == [1, 2]
 

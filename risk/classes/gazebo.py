@@ -8,33 +8,150 @@ import copy
 
 class MyGazeboSim:
 
-    def __init__(self):
+    def __init__(self, v0: list, b_0: list, visited: list, t: int, sim_op=1):
 
-        self.id = 0
-        self.time_step = 0
+        # original parameters
+        self.kappa_original = [3, 4, 5]
+        self.alpha_original = [0.95, 0.95, 0.95]
+        self.m_original = 3
+        self.S_original = [1, 2, 3]
+        self.S_new = []
 
-        # inputs to the planner
-        self.specs = self.specs_basic()
+        self.kappa = copy.copy(self.kappa_original)
+        self.alpha = copy.copy(self.alpha_original)
 
-        # outputs for Gazebo
-        self.m = self.specs.size_team
+        # self.id = 0
+        self.time_step = t
+        self.sim_op = sim_op
+        # status prior to this iteration
+        self.alive, self.killed, v_current = self.adjust_team(v0)
+        self.adjust_threshold()
+
+        # for this iteration
+        self.m_alive = len(self.alive)
+
         # plan[s] = [v0, .... vh]
-        self.plan = {s: [] for s in range(1, self.m+1)}
+        self.plan = {s: [] for s in self.S_original}
         # belief_vector = [b_c, b_1,....b_n]
         self.belief_vector = []
         # vertices visited = [v, u, w,..]
         self.visited = []
+        self.v0 = [1]
 
-    def set_for_planner(self, v_0: list, b_0: list, visited: list, t: int):
+        # here only with alive
+        self.call_planner(v_current, b_0, visited)
 
-        # TODO check for inconsistency if m decreases
+    # --------------------------------------------------------------------------------
+    # Adjusting team sizes
+    # --------------------------------------------------------------------------------
+    def adjust_team(self, v_current: list):
+        """ OK"""
+        alive = []
+        killed = []
+        v0 = []
 
+        s_new = 1
+        s = 1
+        for v in v_current:
+            if v < 0:
+                killed.append(s)
+            else:
+                alive.append(s)
+                v0.append(v)
+                self.S_new.append(s_new)
+                s_new += 1
+            s += 1
+
+        return alive, killed, v0
+
+    def adjust_threshold(self):
+        """"OK"""
+        kappa = []
+        alpha = []
+
+        for s_id in self.S_original:
+            if self.is_alive(s_id, self.alive):
+                s_idx = s_id - 1
+                kappa.append(self.kappa_original[s_idx])
+                alpha.append(self.alpha_original[s_idx])
+
+        self.kappa = kappa
+        self.alpha = alpha
+
+    @staticmethod
+    def is_alive(s_id, alive):
+        if s_id in alive:
+            return True
+        else:
+            return False
+
+    def set_path_to_output(self, just_killed: list, path=None):
+
+        if path is not None:
+            path_as_list = ext.path_as_list(path)
+        else:
+            path_as_list = path
+
+        s_idnew = 0
+        for s_id in self.S_original:
+            if s_id in self.killed:
+                self.plan[s_id] = [-1 for i in range(self.specs.horizon + 1)]
+            else:
+                s_idnew += 1
+                if s_idnew in just_killed:
+                    self.plan[s_id] = [-1 for i in range(self.specs.horizon + 1)]
+                else:
+                    self.plan[s_id] = path_as_list[s_idnew]
+        return
+
+    # --------------------------------------------------------------------------------
+    # Call from Gazebo
+    # --------------------------------------------------------------------------------
+    def call_planner(self, v_0: list, b_0: list, visited: list):
+
+        # basic parameters
+        self.specs_basic(len(v_0))
+        # info from current step
+        self.update_for_planner(v_0, b_0, visited)
+        # for different simulation configs (pre defined specs according to option)
+        self.set_desired_specs()
+
+        # compute plan and danger
+        self.hybrid_sim()
+        # return things necessary for next iteration
+
+    def output_results(self):
+        return self.plan, self.belief_vector, self.visited
+    # --------------------------------------------------------------------------------
+    # Set specs and current information
+    # --------------------------------------------------------------------------------
+    def update_for_planner(self, v_0: list, b_0: list, visited: list):
+        """Update information that came from Gazebo
+        only currently alive searchers"""
+
+        # set team size
         m = len(v_0)
         self.specs_basic(m)
+        # set start searchers from current position
         self.specs.set_start_searchers(v_0)
+        # set belief calculated from previous time
         self.specs.set_b0(b_0)
+        # set vertices visited
         self.visited = visited
-        self.time_step = t
+        # check to make sure current positions are there
+        self.update_visited(v_0)
+
+    def set_desired_specs(self):
+        # define extra specs depending on the simulation option desired
+        if self.sim_op == 1:
+            # danger parameters
+            self.specs_danger_common()
+        elif self.sim_op == 2:
+            self.specs_true_priori()
+        elif self.sim_op == 3:
+            self.specs_100_img()
+        else:
+            exit(print('Please provide a valid sim option.'))
 
     def specs_basic(self, m=3):
 
@@ -68,7 +185,7 @@ class MyGazeboSim:
         specs.set_number_of_runs(1)
         # set random seeds
         # TODO check this
-        specs.set_start_seeds(2000, 6000)
+        # specs.set_start_seeds(2000, 6000)
 
         self.specs = specs
 
@@ -92,10 +209,9 @@ class MyGazeboSim:
         self.specs.set_danger_file(estimated_file, 'hat')
 
         # threshold of searchers
-        kappa = [3, 4, 5]
-        alpha = [0.95, 0.95, 0.95]
-        self.specs.set_threshold(kappa, 'kappa')
-        self.specs.set_threshold(alpha, 'alpha')
+
+        self.specs.set_threshold(self.kappa, 'kappa')
+        self.specs.set_threshold(self.alpha, 'alpha')
 
         # danger perception
         perception = 'point'
@@ -143,13 +259,45 @@ class MyGazeboSim:
 
         return self.specs
 
+    # --------------------------------------------------------------------------------
+    # Simulate and save
+    # --------------------------------------------------------------------------------
+    def update_visited(self, current_pos: list):
+
+        for v in current_pos:
+            if v not in self.visited:
+                self.visited.append(v)
+
+        return self.visited
+
     def hybrid_sim(self):
-        # TODO update/save things accordingly!
         specs = self.specs
 
         # initialize classes
         belief, team, solver_data, target, danger, mission = plnr.init_wrapper(specs)
 
+        # ---------------------------------------
+        # Danger stuff
+        # ---------------------------------------
+        # estimate danger
+        danger.estimate(self.visited)
+
+        if self.time_step > 0:
+
+            if danger.kill:
+                # compute prob kill, draw your luck and update searchers (if needed)
+                team.decide_searchers_luck(danger, self.time_step)
+                # update info in danger
+                danger.update_teamsize(len(team.alive))
+                danger.set_thresholds(team.kappa_original, team.alpha_original)
+
+        # new [check if any searcher is alive]
+        if len(team.alive) < 1:
+            mission.set_team_killed(True)
+            self.set_path_to_output(team.killed)
+            return
+
+        # otherwise plan for next time step, considering just the searchers that are alive!
         # -------------------------------------------------------------------------------
 
         deadline, theta, n = solver_data.unpack_for_sim()
@@ -179,22 +327,11 @@ class MyGazeboSim:
         path_next_t = pln.next_from_path(path, t_plan)
 
         # evolve searcher positions
+        # also update visited
         team.searchers_evolve(path_next_t)
 
         # next time-step
         t, t_plan = t + 1, t_plan + 1
-
-        # --------------------------------------
-        # new [danger]
-        # estimate danger
-        danger.estimate(self.visited)
-
-        if danger.kill:
-            # compute prob kill, draw your luck and update searchers (if needed)
-            team.decide_searchers_luck(danger, t)
-            # update info in danger
-            danger.update_teamsize(len(team.alive))
-            danger.set_thresholds(team.kappa, team.alpha)
 
         # retrieve path_next_t (from searchers that are still alive)
         path_next_t = team.retrieve_current_positions()
@@ -205,41 +342,34 @@ class MyGazeboSim:
 
         # update target
         target = sf.evolve_target(target, belief.new)
+        # -------------------------------------------------------------------
+        # get things ready to be output
+        self.set_path_to_output(team.killed, path)
+        self.belief_vector = solver_data.retrieve_solver_belief(0, 1)
+        self.visited = self.update_visited(team.visited_vertices)
 
-        # --------------------------------------
-        # new [check if searchers are alive]
-        if len(team.alive) < 1:
-            mission.set_team_killed(True)
+        # # printout for reference
+        # team.print_summary()
+        print('Vertices visited: %s' % str(self.visited))
+        # return belief, target, team, solver_data, danger, mission
 
-        # check for capture based on next position of vertex and searchers
-        team.searchers, target = sf.check_for_capture(team.searchers, target)
 
-        mission.save_details(t, copy.copy(team.alive), copy.copy(target.is_captured))
-        # printout for reference
-        team.print_summary()
-        return belief, target, team, solver_data, danger, mission
+if __name__ == '__main__':
 
-    def call_planner(self, v_0: list, b_0: list, visited: list, t: int, sim_op=1):
+    # dummy parameters to test
+    n = 46
+    v_maybe = [8, 10, 12, 14, 17, 15]
+    b_dummy = [0.0 for i in range(n + 1)]
+    for v in v_maybe:
+        b_dummy[v] = 1. / 6
+    # current positions
+    pos_dummy = [2, -1, 4]
+    # pos_dummy = [1, 1, 1]
+    visited_dummy = [1, 3]
+    sim_op = 1
+    t = 3
 
-        # basic parameters
-        self.specs_basic(len(v_0))
-        # info from current step
-        self.set_for_planner(v_0, b_0, visited, t)
-
-        if sim_op == 1:
-            # danger parameters
-            self.specs_danger_common()
-        elif sim_op == 2:
-            self.specs_true_priori()
-        elif sim_op == 3:
-            self.specs_100_img()
-        else:
-            exit(print('Please provide a valid sim option.'))
-
-        # compute plan and danger
-        belief, target, team, solver_data, danger, mission = self.hybrid_sim()
-        # TODO output updates inside hybrid sim!
-        return self.plan, self.belief_vector, self.visited
-
+    my_sim = MyGazeboSim(pos_dummy, b_dummy, visited_dummy, t, sim_op)
+    plan, belief_vector, visited = my_sim.output_results()
 
 

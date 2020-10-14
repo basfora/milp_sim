@@ -50,7 +50,7 @@ def test_create_team():
     team = rp.create_searchers(specs)
 
     assert team.S == [1, 2]
-    assert team.m == 2
+    assert team.m_input == 2
     for s_id in team.S:
         s = team.searchers[s_id]
         assert s.capture_range == 0
@@ -73,7 +73,7 @@ def test_searchers_update():
     team = rp.create_searchers(specs)
 
     assert team.kappa == [3, 4]
-    assert team.kappa_original == [3, 4]
+    assert team.kappa == [3, 4]
 
     s1 = team.searchers[1]
     s1.set_alive(False)
@@ -158,7 +158,7 @@ def test_decide_searchers_luck():
 
     # update team size
     team.update_size(len(team.searchers))
-    assert team.m == 0
+    assert team.m_input == 0
     assert team.S == []
 
     # update alive list
@@ -177,11 +177,11 @@ def test_decide_searchers_luck():
 
     # update thresholds
     team.update_kappa()
-    assert team.kappa == []
+    assert team.kappa_original == []
 
     # update alpha
     team.update_alpha()
-    assert team.alpha == []
+    assert team.alpha_original == []
 
 
 def test_decide_searchers_luck2():
@@ -234,7 +234,7 @@ def test_decide_searchers_luck2():
 
     # update team size
     team.update_size(len(team.searchers))
-    assert team.m == 1
+    assert team.m_input == 1
     assert team.S == [1]
 
     # update alive list
@@ -248,16 +248,16 @@ def test_decide_searchers_luck2():
     assert team.current_positions == {1: 3}
 
     # thresholds (prior to update)
-    assert team.kappa == [3, 4] == team.kappa_original
-    assert team.alpha == [0.95, 0.95] == team.alpha_original
+    assert team.kappa_original == [3, 4] == team.kappa_original
+    assert team.alpha_original == [0.95, 0.95] == team.alpha_original
 
     # update thresholds
     team.update_kappa()
-    assert team.kappa == [4]
+    assert team.kappa_original == [4]
 
     # update alpha
     team.update_alpha()
-    assert team.alpha == [0.95]
+    assert team.alpha_original == [0.95]
 
 
 

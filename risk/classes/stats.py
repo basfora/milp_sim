@@ -427,7 +427,7 @@ class MyStats:
             assert self.danger_constraints is False
 
         # team parameters
-        self.m = copy.deepcopy(ins.mission.m)
+        self.m = copy.deepcopy(ins.mission.m_input)
         self.team_hh = ins.mission.homogeneous_team
         self.kappa = ins.mission.kappa
         # time parameters
@@ -575,7 +575,7 @@ class MyInstance:
 
         if self.abort is True:
             # number casualties = team size
-            self.number_casualties = copy.deepcopy(self.mission.m)
+            self.number_casualties = copy.deepcopy(self.mission.m_input)
             self.casualty_mvp = True
         else:
             for s in self.mission.casual_ids:

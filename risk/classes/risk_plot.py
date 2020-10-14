@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 from milp_sim.risk.classes.stats import MyStats
 from milp_sim.risk.classes.danger import MyDanger
+from milp_sim.risk.src import base_fun as bf
 import copy
 import os
 
@@ -101,6 +102,33 @@ class RiskPlot:
         lgd = ['Missions with Casualties', 'MVA', 'Non-MVA']
         title = 'Casualties\n' + subtitle
         self.plot_stat(stats_plot, title, lgd, 0)
+
+    def retrieve_compiled(self, folder_name: str, instance_base: str, subtitle=''):
+        stats_plot = []
+
+        for f_name in folder_name:
+
+            f_path = self.get_file_path(f_name)
+            stat = bf.load_pickle_file(f_path)
+            mission_casualties = stat.cum_casualty_mission_rate
+            mva_casualties = stat.cum_casualty_mvp_rate
+            non_mva_casualties = stat.cum_casualty_not_mvp_rate
+            stats_plot = [mission_casualties, mva_casualties, non_mva_casualties]
+
+        lgd = ['Missions with Casualties', 'MVA', 'Non-MVA']
+        title = 'Casualties\n' + subtitle
+        self.plot_stat(stats_plot, title, lgd, 0)
+
+    @staticmethod
+    def get_compiled_path():
+        data_compiled_path = MyDanger.get_folder_path('data_compiled')
+        save_path = data_compiled_path
+        return save_path
+
+    def get_file_path(self, f_name: str):
+        f_path = self.get_compiled_path() + '/' + f_name + '/' + 'saved_data.pkl'
+        return f_path
+
 
     @staticmethod
     def plot_points_between_list(v_points, v_conn, my_color='k', my_marker=None):

@@ -134,7 +134,7 @@ def test_run_sim():
 
     path_list = {}
 
-    assert team.m == 2
+    assert team.m_input == 2
     assert team.S == [1, 2]
 
     for s_id in searchers.keys():

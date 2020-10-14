@@ -78,9 +78,6 @@ def create_danger(specs):
     else:
         danger.uniform_priori = False
 
-    # TODO unit test this for prob approach
-    # danger.compute_Hs(priori)
-
     return danger
 
 
