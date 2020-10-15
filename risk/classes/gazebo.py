@@ -31,7 +31,7 @@ class MyGazeboSim:
         self.m_alive = len(self.alive)
 
         # plan[s] = [v0, .... vh]
-        self.plan = {s: [] for s in self.S_original}
+        self.plan = {}
         # belief_vector = [b_c, b_1,....b_n]
         self.belief_vector = []
         # vertices visited = [v, u, w,..]
@@ -91,7 +91,8 @@ class MyGazeboSim:
             return None
 
         else:
-            path_as_list = ext.path_as_list(path)
+            path_list = ext.path_as_list(path)
+
             for s_id in self.S_original:
                 # get new id
                 new_id = self.get_new_id(s_id)
@@ -100,7 +101,7 @@ class MyGazeboSim:
                     # was killed before this iteration
                     self.plan[s_id] = self.make_dummy_path()
                 else:
-                    self.plan[s_id] = path_as_list[new_id]
+                    self.plan[s_id] = path_list[new_id]
         return
 
     def get_new_id(self, s_id):
@@ -371,7 +372,7 @@ if __name__ == '__main__':
     for v in v_maybe:
         b_dummy[v] = 1./ 6
     # current positions
-    pos_dummy = [-1, -1, 4]
+    pos_dummy = [2, 3, 4]
     # pos_dummy = [1, 1, 1]
     visited_dummy = [1, 3]
     sim_op = 1
@@ -379,5 +380,8 @@ if __name__ == '__main__':
 
     my_sim = MyGazeboSim(pos_dummy, b_dummy, visited_dummy, t, sim_op)
     plan, belief_vector, visited = my_sim.output_results()
+
+    for s in plan.keys():
+        print(plan[s])
 
 

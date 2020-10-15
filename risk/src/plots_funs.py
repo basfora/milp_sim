@@ -79,7 +79,7 @@ def plot_gaps(gaps, x_values, param, offset=None):
     # ax.yaxis.set_major_locator(plt.MaxNLocator(5))
 
     # labels
-    ax.set_xvalues(x_label, fontsize=f_size)
+    ax.set_x_ticks(x_label, fontsize=f_size)
 
     if offset is None:
         # regular tick and label
@@ -125,7 +125,7 @@ def plot_times(times, x_values, param, offset=None):
     ax.set_xticklabels(map(lambda x: str(x), x_values))
 
     # plot labelsax.set_ylabel(y_label, fontsize=15)
-    ax.set_xvalues(x_label, fontsize=f_size)
+    ax.set_x_ticks(x_label, fontsize=f_size)
 
     if offset is None:
         # regular tick and label
@@ -176,7 +176,7 @@ def plot_line(objs, x_values, param):
     ax.set_ylim(0, max(avg) + max(std_devs)+0.1)
 
     # plot labels
-    ax.set_xvalues(x_label, fontsize=f_size)
+    ax.set_x_ticks(x_label, fontsize=f_size)
     ax.set_ylabel(y_label, fontsize=f_size)
 
     plot_and_close(fig, filename)
@@ -231,7 +231,7 @@ def plot_multi_line(objs, x_values, param):
     # ax.set_ylim(-1, 1)
 
     # plot labels
-    ax.set_xvalues(x_label, fontsize=f_size)
+    ax.set_x_ticks(x_label, fontsize=f_size)
     ax.set_ylabel(y_label, fontsize=f_size)
 
     # lgd

@@ -135,7 +135,10 @@ class RiskPlot:
         title = 'Casualties\n' + subtitle
         self.plot_stat(stats_plot, title, lgd, 0)
 
-    def retrieve_outcomes(self, pickle_names: list, subtitle='', lgd=''):
+    # --------------------------------------
+    # Retrieve for paper plots
+    # --------------------------------------
+    def retrieve_outcomes(self, pickle_names: list):
 
         outcomes_list = []
         outcomes_cum = []
@@ -171,10 +174,12 @@ class RiskPlot:
 
         self.plot_error_point(0)
 
-    def retrieve_casualties(self, pickle_names: list, subtitle='', lgd=''):
+    def retrieve_casualties(self, pickle_names: list):
 
         casualties_list = []
         casualties_cum = []
+
+        plot_n = 1
 
         self.configs = len(pickle_names)
 
@@ -201,16 +206,16 @@ class RiskPlot:
 
         self.cum_casualties = casualties_cum
         self.casualties = self.change_format_casualties(self.N, casualties_list)
-        self.compute_MC(1)
+        self.compute_MC(plot_n)
 
-        self.plot_error_point(1)
+        self.plot_error_point(plot_n)
 
     def plot_error_point(self, plot_n=0):
 
+        # get padding
         self.set_lgd(plot_n)
-        self.set_xvalues()
+        self.set_x_ticks()
         self.set_title()
-        y_label = 'Rate'
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -221,26 +226,35 @@ class RiskPlot:
 
             for j in range(len(self.avg[i])):
 
-                if j == 1:
+                if plot_n == 0 and j == 1:
+                    # do not plot
                     continue
 
-                x = [self.x_list[i]]
-                y = [self.avg[i][j]]
-                std = [self.std[i][j]]
+                y = self.avg[i][j]
+                std = self.std[i][j]
 
-                low_error = std[0]
-                up_error = std[0]
+                # make error bar pretty
+                low_error = std
+                up_error = std
 
-                if plot_n == 1:
-
-                    if y[0] + std[0] > 1.0:
-                        low_error = std[0]
+                if plot_n < 2:
+                    if y + std > 1.0:
+                        low_error = std
                         up_error = 0.0
-                    elif y[0] - std[0] < 0.0:
+                    elif y - std < 0.0:
                         up_error = std[0]
                         low_error = 0.0
 
+                # if plot_n < 2:
+                    y = self.prob_to_per(y)
+                    low_error = self.prob_to_per(low_error)
+                    up_error = self.prob_to_per(up_error)
+
                 assy = np.array([[low_error, up_error]]).T
+
+                # make into lists
+                x = [self.x_list[i]]
+                y = [y]
 
                 plt.errorbar(x, y, yerr=assy, fmt=colors[j])
 
@@ -248,26 +262,32 @@ class RiskPlot:
         f_size = 16
         ax.set_ylabel(self.y_label[plot_n], fontsize=f_size)
 
+        # title and legend
         plt.title(self.title[plot_n])
 
         my_handle = []
         for j in range(len(self.avg[0])):
-            if j == 1:
+            if plot_n == 0 and j == 1:
                 continue
+
             my_handle.append(mlines.Line2D([], [], color=colors[j][0], label=self.lgd[j]))
+
         plt.legend(handles=my_handle, frameon=False)
 
+        if plot_n == 1:
+            plt.legend(loc='upper left')
+
+        # save fig
         fig_path = MyDanger.get_folder_path('figs')
         fig_name = fig_path + '/' + self.fig_name[plot_n] + '.pdf'
         fig.savefig(fig_name, bbox_inches='tight')
 
+        # show me
         plt.show()
 
-    @staticmethod
-    def draw_errorbar(xvalues, yvalues, y_err, ax, l_style='bo-', lgd=None):
-        ax.errorbar(xvalues, yvalues, yerr=y_err, fmt=l_style, label=lgd, capsize=2)
-        ax.grid(b=True, which='both')
-
+    # --------------------------------------
+    # Computation of stats
+    # --------------------------------------
     @staticmethod
     def change_format_outcomes(N, outcomes_list):
 
@@ -291,48 +311,46 @@ class RiskPlot:
     @staticmethod
     def change_format_casualties(N, casualty_list):
 
-        q = 3
-
         config_casual = []
         for config in casualty_list:
-            binary_casual = []
 
-            for j in range(q):
-                yes_list = config[j]
-                aux_list = []
+            binary_any = []
+            binary_mva = []
+            binary_non_mva = []
 
-                if j == 2:
-                    mva = config[1]
-                    all_s = config[0]
+            c_any = copy.copy(config[0])
+            c_mva = copy.copy(config[1])
 
-                for i in N:
-                    # missions with casualties
-                    if j == 0:
-                        if yes_list[i] > 0:
-                            aux_list.append(1.0)
-                        else:
-                            aux_list.append(0.0)
-                    # MVA
-                    if j == 1:
-                        if yes_list[i]:
-                            aux_list.append(1.0)
-                        else:
-                            aux_list.append(0.0)
+            for i in N:
 
-                    if j == 2:
-                        if all_s[i] > 0:
-                            if mva[i] is False or all_s[i] > 1:
-                                aux_list.append(1.0)
-                            else:
-                                aux_list.append(0.0)
-                        else:
-                            aux_list.append(0.0)
+                idx = i - 1
 
-                binary_casual.append(aux_list)
+                # missions with casualties
+                if c_any[idx] > 0:
+                    binary_any.append(1.0)
+                else:
+                    binary_any.append(0.0)
 
-            config_casual.append(binary_casual)
+                # MVA
+                if c_mva[idx]:
+                    binary_mva.append(1.0)
+                else:
+                    binary_mva.append(0.0)
+
+                # other
+                if (c_any[idx] > 0 and c_mva[idx] is False) or c_any[idx] > 1:
+                    binary_non_mva.append(1.0)
+                else:
+                    binary_non_mva.append(0.0)
+
+            config_casual.append([binary_any, binary_mva, binary_non_mva])
 
         return config_casual
+
+    @staticmethod
+    def prob_to_per(prob):
+        per = round(prob * 100, 2)
+        return per
 
     def compute_MC(self, plot_n=0):
 
@@ -341,15 +359,19 @@ class RiskPlot:
 
         if plot_n == 0:
             metric = self.outcomes
+            cum_metric = self.cum_outcomes
         elif plot_n == 1:
             metric = self.casualties
+            cum_metric = self.cum_casualties
         else:
             metric = self.times
+            cum_metric = self.cum_times
 
         i = -1
         for config in metric:
             i += 1
             j = -1
+
             avg_config = []
             std_config = []
             for rate in config:
@@ -358,13 +380,20 @@ class RiskPlot:
                 avg_config.append(avg)
                 std_config.append(std)
 
-                self.sanity_check(avg, self.cum_outcomes[i][j][-1])
+                if self.sanity_check(avg, cum_metric[i][j][-1]) is False:
+                    print('config = %d, metric = %d' % (i, j))
+
             self.avg.append(avg_config)
             self.std.append(std_config)
 
     @staticmethod
     def sanity_check(avg1, avg2):
-        assert round(avg1, 3) == round(avg2, 3)
+
+        if round(avg1, 2) == round(avg2, 2):
+            return True
+        else:
+            print('Difference: computed %.4f, cumulative %.4f ' % (avg1, avg2))
+            return False
 
     @staticmethod
     def compute_avg(my_list: list):
@@ -374,17 +403,20 @@ class RiskPlot:
 
         return avg, std
 
+    # --------------------------------------
+    # Plot padding
+    # --------------------------------------
     def set_title(self):
 
         self.title.append('Mission Outcome')
-        self.title.append('Casualties')
+        self.title.append('Missions with Casualties')
         self.title.append('Mission Times')
 
-        self.y_label = ['Rate', 'Percentage', 'Time Steps']
+        self.y_label = ['Percentage [\%]', 'Percentage [\%]', 'Time [steps]']
 
         self.fig_name = ['mission_outcomes', 'casualties', 'times']
 
-    def set_lgd_na(self):
+    def set_config_names(self):
 
         ND = 'No danger baseline'
         PK = 'A priori: true values'
@@ -399,9 +431,10 @@ class RiskPlot:
             self.lgd = ['Success', 'Failure', 'Abort', 'Cutoff']
         elif n_plot == 1:
             self.lgd = ['Casualty: True', 'Most Valuable Agent', 'Other Agent']
+        elif n_plot == 2:
+            self.lgd = ['Average Mission Time', 'Capture Time']
 
-
-    def set_xvalues(self):
+    def set_x_ticks(self):
 
         ND = 'No danger baseline'
         PK = 'A priori: true values'
@@ -411,6 +444,9 @@ class RiskPlot:
 
         self.x_list = ['ND', 'PK', 'I100', 'I5', 'NC']
 
+    # --------------------------------------
+    # File path
+    # --------------------------------------
     @staticmethod
     def get_compiled_path():
         data_compiled_path = MyDanger.get_folder_path('data_compiled')
@@ -421,6 +457,22 @@ class RiskPlot:
         f_path = self.get_compiled_path() + '/' + f_name + '.pkl'
         return f_path
 
+    @staticmethod
+    def assemble_parent_name(datename: str, config: str, extra_id='', probname='h'):
+
+        parent_name = datename + config + '-' + probname + '-' + extra_id
+        data_saved_path = MyDanger.get_folder_path('data_saved')
+
+        parent_path = data_saved_path + '/' + parent_name
+        # check if folder exists
+        if not os.path.exists(parent_path):
+            exit(print('Parent folder %s does not exist.' % parent_name))
+
+        return parent_name, parent_path
+
+    # --------------------------------------
+    # General functions
+    # --------------------------------------
     @staticmethod
     def plot_points_between_list(v_points, v_conn, my_color='k', my_marker=None):
         """Plot points and their connections
@@ -480,19 +532,10 @@ class RiskPlot:
         return
 
     @staticmethod
-    def assemble_parent_name(datename: str, config: str, extra_id='', probname='h'):
-
-        parent_name = datename + config + '-' + probname + '-' + extra_id
-        data_saved_path = MyDanger.get_folder_path('data_saved')
-
-        parent_path = data_saved_path + '/' + parent_name
-        # check if folder exists
-        if not os.path.exists(parent_path):
-            exit(print('Parent folder %s does not exist.' % parent_name))
-
-        return parent_name, parent_path
-
-    @staticmethod
     def show_me():
         plt.show()
 
+    # @staticmethod
+    # def draw_errorbar(xvalues, yvalues, y_err, ax, l_style='bo-', lgd=None):
+    #     ax.errorbar(xvalues, yvalues, yerr=y_err, fmt=l_style, label=lgd, capsize=2)
+    #     ax.grid(b=True, which='both')
