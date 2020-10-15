@@ -15,7 +15,7 @@ class MyGazeboSim:
         self.alpha_original = [0.95, 0.95, 0.95]
         self.m_original = 3
         self.S_original = [1, 2, 3]
-        self.S_new = []
+        self.id_map = []
 
         self.kappa = copy.copy(self.kappa_original)
         self.alpha = copy.copy(self.alpha_original)
@@ -50,17 +50,17 @@ class MyGazeboSim:
         killed = []
         v0 = []
 
-        s_new = 1
-        s = 1
-        for v in v_current:
+        for s_id in self.S_original:
+            v = v_current[s_id - 1]
+            # if it already died, don't count with it
             if v < 0:
-                killed.append(s)
+                killed.append(s_id)
+                self.id_map.append((s_id, -1))
             else:
-                alive.append(s)
+                alive.append(s_id)
                 v0.append(v)
-                self.S_new.append(s_new)
-                s_new += 1
-            s += 1
+                s_new = v0.index(v) + 1
+                self.id_map.append((s_id, s_new))
 
         return alive, killed, v0
 
@@ -87,22 +87,30 @@ class MyGazeboSim:
 
     def set_path_to_output(self, just_killed: list, path=None):
 
-        if path is not None:
-            path_as_list = ext.path_as_list(path)
-        else:
-            path_as_list = path
+        if path is None or len(just_killed) == self.m_original:
+            return None
 
-        s_idnew = 0
-        for s_id in self.S_original:
-            if s_id in self.killed:
-                self.plan[s_id] = [-1 for i in range(self.specs.horizon + 1)]
-            else:
-                s_idnew += 1
-                if s_idnew in just_killed:
-                    self.plan[s_id] = [-1 for i in range(self.specs.horizon + 1)]
+        else:
+            path_as_list = ext.path_as_list(path)
+            for s_id in self.S_original:
+                # get new id
+                new_id = self.get_new_id(s_id)
+
+                if new_id < 0 or new_id in just_killed:
+                    # was killed before this iteration
+                    self.plan[s_id] = self.make_dummy_path()
                 else:
-                    self.plan[s_id] = path_as_list[s_idnew]
+                    self.plan[s_id] = path_as_list[new_id]
         return
+
+    def get_new_id(self, s_id):
+
+        for couple in self.id_map:
+            if couple[0] == s_id:
+                return couple[1]
+
+    def make_dummy_path(self):
+        return  [-1 for i in range(self.specs.horizon + 1)]
 
     # --------------------------------------------------------------------------------
     # Call from Gazebo
@@ -343,7 +351,7 @@ class MyGazeboSim:
         # update target
         target = sf.evolve_target(target, belief.new)
         # -------------------------------------------------------------------
-        # get things ready to be output
+        # get things ready to output
         self.set_path_to_output(team.killed, path)
         self.belief_vector = solver_data.retrieve_solver_belief(0, 1)
         self.visited = self.update_visited(team.visited_vertices)
@@ -361,9 +369,9 @@ if __name__ == '__main__':
     v_maybe = [8, 10, 12, 14, 17, 15]
     b_dummy = [0.0 for i in range(n + 1)]
     for v in v_maybe:
-        b_dummy[v] = 1. / 6
+        b_dummy[v] = 1./ 6
     # current positions
-    pos_dummy = [2, -1, 4]
+    pos_dummy = [-1, -1, 4]
     # pos_dummy = [1, 1, 1]
     visited_dummy = [1, 3]
     sim_op = 1

@@ -404,7 +404,6 @@ def mount_coord_frame(path_and_fig, t: int, my_words: dict, n_sub=1, video=False
     save_frame(path_and_fig, frame_idx, video, 'frame')
 
 
-
 class CustomizePlot:
 
     def __init__(self):

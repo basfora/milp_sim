@@ -165,8 +165,19 @@ def analysis_exp_1012():
     rp.retrieve_data(folders[5], 'DCDKHT_05hpoint_NFOV_G46Vss2_1013_', subtitle[4])
 
 
+def plot_for_paper():
+    # TODO retrieve compiled
+    # 3 plots mission outcome, casualties, mission times
+    rp = RiskPlot()
+    #  [ND, PK, I100, I5, NC]
+    #  [0, 1, 2, 3, 4]
+    pickle_list = ['1013NCNKHT-n-0', '1012DCDKHT-h-PK', '1012DCDKHT-h-100', '1012DCDKHT-h-05', '1012NCDKHT-h-NA']
+
+    # rp.retrieve_outcomes(pickle_list)
+    rp.retrieve_casualties(pickle_list)
+
 
 if __name__ == '__main__':
-    analysis_exp_1012()
-    # plot_only()
+
+    plot_for_paper()
 

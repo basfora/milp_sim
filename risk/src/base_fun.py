@@ -130,7 +130,8 @@ def load_pickle_file(file_path: str):
     """Load pickle file, given complete file path"""
 
     try:
-        data = pickle.load(open(file_path, "rb"))
+        with open(file_path, "rb") as f:
+            data = pickle.load(f)
 
     except:
         print('Make sure your parameters are right! %s does not exist' % file_path)
