@@ -78,6 +78,9 @@ def create_danger(specs):
     else:
         danger.uniform_priori = False
 
+    # make node 1 be danger level 1 to avoid inf at t=0, save it to priori, estimated and lookup
+    danger.set_v0_danger()
+
     return danger
 
 

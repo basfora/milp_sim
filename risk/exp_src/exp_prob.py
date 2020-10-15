@@ -27,19 +27,19 @@ if __name__ == "__main__":
     i = 1
     tic = get_timer()
 
-    # """[1] Perfect a priori knowledge"""
-    # specs = icra.specs_true_priori_prob()
-    # icra.num_sim(specs)
-    # # ---
-    # del specs
-    # i, tic = get_time(tic, i)
-
-    """[2] 5% images, probabilistic"""
-    specs = icra.specs_prob()
+    """[1] Perfect a priori knowledge"""
+    specs = icra.specs_true_priori_prob()
     icra.num_sim(specs)
     # ---
     del specs
     i, tic = get_time(tic, i)
+
+    # """[2] 5% images, probabilistic"""
+    # specs = icra.specs_prob()
+    # icra.num_sim(specs)
+    # # ---
+    # del specs
+    # i, tic = get_time(tic, i)
 
 
 

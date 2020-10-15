@@ -251,13 +251,6 @@ class MyDanger:
         self.z_hat = z0_0
         self.H_hat = H0_0
 
-        self.set_v0_danger()
-
-        # save in storage
-        self.stored_eta_hat[0] = copy.copy(self.eta0_0)
-        self.stored_z_hat[0] = copy.copy(self.z0_0)
-        self.stored_H_hat[0] = copy.copy(self.H0_0)
-
         return
 
     def set_estimate(self, etahat_off=None):
@@ -344,6 +337,11 @@ class MyDanger:
             self.lookup_eta_hat[vidx] = my_eta
             self.lookup_z_hat[vidx] = my_z
             self.lookup_H_hat[vidx] = my_H
+
+        # save in storage
+        self.stored_eta_hat[0] = copy.copy(self.eta0_0)
+        self.stored_z_hat[0] = copy.copy(self.z0_0)
+        self.stored_H_hat[0] = copy.copy(self.H0_0)
 
         return
 

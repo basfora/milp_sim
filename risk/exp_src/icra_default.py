@@ -205,7 +205,7 @@ def specs_335_prob():
     specs = specs_prob()
 
     kappa = [3, 3, 5]
-    alpha = [0.9, 0.9, 0.1]
+    alpha = [0.6, 0.6, 0.1]
     specs.set_threshold(kappa, 'kappa')
     specs.set_threshold(alpha, 'alpha')
 
@@ -221,24 +221,24 @@ def num_sim(specs):
 
         specs.prep_next_turn(turn)
 
-        try:
+        # try:
 
-            # run simulator
-            belief, target, team, solver_data, danger, mission = sr.run_simulator(specs)
+        # run simulator
+        belief, target, team, solver_data, danger, mission = sr.run_simulator(specs)
 
-            # save everything as a pickle file
-            bf.save_sim_data(belief, target, team, solver_data, danger, specs, mission)
+        # save everything as a pickle file
+        bf.save_sim_data(belief, target, team, solver_data, danger, specs, mission)
 
+        # iterate run #
+        specs.update_run_number()
+
+        # delete things
+        del belief, target, team, solver_data, danger, mission
+        #except:
+         #   print('Error on instance %d! Jumping to next instance.' % turn)
             # iterate run #
-            specs.update_run_number()
-
-            # delete things
-            del belief, target, team, solver_data, danger, mission
-        except:
-            print('Error on instance %d! Jumping to next instance.' % turn)
-            # iterate run #
-            specs.update_run_number()
-            pass
+         #   specs.update_run_number()
+         #   pass
 
         print("----------------------------------------------------------------------------------------------------")
         print("----------------------------------------------------------------------------------------------------")

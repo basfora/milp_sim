@@ -209,9 +209,6 @@ class MyGazeboSim:
         # repetitions for each configuration
         specs.set_number_of_runs(1)
         # set random seeds
-        # TODO check this
-        # specs.set_start_seeds(2000, 6000)
-
         self.specs = specs
 
         return specs
@@ -313,7 +310,7 @@ class MyGazeboSim:
         self.specs_prob()
 
         kappa = [3, 3, 5]
-        alpha = [0.9, 0.9, 0.1]
+        alpha = [0.6, 0.6, 0.4]
         self.specs.set_threshold(kappa, 'kappa')
         self.specs.set_threshold(alpha, 'alpha')
 
