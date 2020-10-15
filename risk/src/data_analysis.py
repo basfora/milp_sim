@@ -171,11 +171,11 @@ def plot_for_paper():
     rp = RiskPlot()
     #  [ND, PK, I100, I5, NC]
     #  [0, 1, 2, 3, 4]
-    pickle_list = ['1013NCNKHT-n-0', '1012DCDKHT-h-PK', '1012DCDKHT-h-100', '1012DCDKHT-h-05', '1012NCDKHT-h-NA']
+    pickle_list = ['1013NCNKHT-n-0', '1012DCDKHT-h-PK',  '1012DCDKHT-h-05', '1012NCDKHT-h-NA'] #'1012DCDKHT-h-100',
 
-    # rp.retrieve_outcomes(pickle_list)
+    rp.retrieve_outcomes(pickle_list)
     # rp.retrieve_casualties(pickle_list)
-    rp.retrieve_times(pickle_list)
+    #rp.retrieve_times(pickle_list)
 
 
 if __name__ == '__main__':

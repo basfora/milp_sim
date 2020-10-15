@@ -14,7 +14,7 @@ def specs_basic():
     # solver parameter: central x distributed
     specs.set_solver_type('distributed')
     # solver timeout (in seconds)
-    specs.set_timeout(60)
+    specs.set_timeout(10)
     # ------------------------
     # time stuff: deadline mission (tau), planning horizon (h), re-plan frequency (theta)
     specs.set_horizon(14)
@@ -151,7 +151,7 @@ def specs_prob():
     specs = specs_danger_common()
     # threshold of searchers
     kappa = [3, 4, 5]
-    alpha = [0.9, 0.8, 0.8]
+    alpha = [0.6, 0.4, 0.4]
     specs.set_threshold(kappa, 'kappa')
     specs.set_threshold(alpha, 'alpha')
 
@@ -221,24 +221,24 @@ def num_sim(specs):
 
         specs.prep_next_turn(turn)
 
-        # try:
+        try:
 
             # run simulator
-        belief, target, team, solver_data, danger, mission = sr.run_simulator(specs)
+            belief, target, team, solver_data, danger, mission = sr.run_simulator(specs)
 
-        # save everything as a pickle file
-        bf.save_sim_data(belief, target, team, solver_data, danger, specs, mission)
+            # save everything as a pickle file
+            bf.save_sim_data(belief, target, team, solver_data, danger, specs, mission)
 
-        # iterate run #
-        specs.update_run_number()
+            # iterate run #
+            specs.update_run_number()
 
-        # delete things
-        del belief, target, team, solver_data, danger, mission
-        # except:
-        print('Error on instance %d! Jumping to next instance.' % turn)
-        # iterate run #
-        specs.update_run_number()
-        pass
+            # delete things
+            del belief, target, team, solver_data, danger, mission
+        except:
+            print('Error on instance %d! Jumping to next instance.' % turn)
+            # iterate run #
+            specs.update_run_number()
+            pass
 
         print("----------------------------------------------------------------------------------------------------")
         print("----------------------------------------------------------------------------------------------------")

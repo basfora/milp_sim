@@ -1,6 +1,6 @@
 """Class for Gazebo Sims"""
 from milp_sim.risk.classes.child_mespp import MyInputs2
-from milp_sim.risk.src import plan_risk as plnr, risk_parameters as rp
+from milp_sim.risk.src import plan_risk as plnr
 from milp_mespp.core import plan_fun as pln
 from milp_mespp.core import sim_fun as sf, extract_info as ext
 import copy
@@ -132,6 +132,7 @@ class MyGazeboSim:
 
     def output_results(self):
         return self.plan, self.belief_vector, self.visited
+
     # --------------------------------------------------------------------------------
     # Set specs and current information
     # --------------------------------------------------------------------------------
@@ -159,9 +160,23 @@ class MyGazeboSim:
         elif self.sim_op == 2:
             self.specs_true_priori()
         elif self.sim_op == 3:
-            self.specs_100_img()
+            self.specs_no_constraints()
+        elif self.sim_op == 4:
+            self.specs_no_danger()
+        elif self.sim_op == 5:
+            self.specs_prob()
+        elif self.sim_op == 6:
+            self.specs_true_priori_prob()
+        elif self.sim_op == 7:
+            self.specs_335()
+        elif self.sim_op == 8:
+            self.specs_335_prob()
         else:
             exit(print('Please provide a valid sim option.'))
+
+    # --------------------------------------------------------------------------------
+    # Specs to run simulations
+    # --------------------------------------------------------------------------------
 
     def specs_basic(self, m=3):
 
@@ -201,6 +216,7 @@ class MyGazeboSim:
 
         return specs
 
+    """sim_op 1"""
     def specs_danger_common(self):
         """Set common danger specs
         """
@@ -237,6 +253,7 @@ class MyGazeboSim:
 
         return self.specs
 
+    """sim_op 2"""
     def specs_true_priori(self):
         # self.specs_danger_common()
         # set perfect a priori knowledge
@@ -246,6 +263,7 @@ class MyGazeboSim:
 
         return self.specs
 
+    """sim_op 3"""
     def specs_no_constraints(self):
 
         self.specs.set_kill(True, 3)
@@ -253,21 +271,51 @@ class MyGazeboSim:
 
         return self.specs
 
-    def specs_100_img(self):
-        # danger files
-        base_name = 'danger_map_NCF_freq_'
-        # true danger file
-        true_file = base_name + '100'
-        self.specs.set_danger_file(true_file, 'true')
-        # ----------------------------------------
-        # estimating only with 5% images
-        # ----------------------------------------
-        per = 100
-        estimated_file = base_name + str(per).zfill(2)
-        # estimated danger file
-        self.specs.set_danger_file(estimated_file, 'hat')
+    """sim_op 4"""
+    def specs_no_danger(self):
+        self.specs_danger_common()
+        self.specs.set_kill(False)
+        self.specs.set_danger_constraints(False)
 
         return self.specs
+
+    """sim_op 5"""
+    def specs_prob(self):
+        self.specs_danger_common()
+        # threshold of searchers
+        kappa = [3, 4, 5]
+        alpha = [0.6, 0.4, 0.4]
+        self.specs.set_threshold(kappa, 'kappa')
+        self.specs.set_threshold(alpha, 'alpha')
+
+        # danger perception
+        perception = 'prob'
+        self.specs.set_danger_perception(perception)
+
+    """sim_op 6"""
+    def specs_true_priori_prob(self):
+        self.specs_prob()
+
+        # set perfect a priori knowledge
+        self.specs.set_true_know(True)
+        # and estimate
+        self.specs.set_true_estimate(True)
+
+    """sim_op 7"""
+    def specs_335(self):
+        self.specs_danger_common()
+
+        kappa = [3, 3, 5]
+        self.specs.set_threshold(kappa, 'kappa')
+
+    """sim_op 8"""
+    def specs_335_prob(self):
+        self.specs_prob()
+
+        kappa = [3, 3, 5]
+        alpha = [0.9, 0.9, 0.1]
+        self.specs.set_threshold(kappa, 'kappa')
+        self.specs.set_threshold(alpha, 'alpha')
 
     # --------------------------------------------------------------------------------
     # Simulate and save

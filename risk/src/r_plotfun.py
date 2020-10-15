@@ -242,12 +242,12 @@ def my_hazard_labels(fig_1, xy=None, f_size=12):
 
     for i in levels:
 
-        my_font[i] = {'family': 'serif', 'color': level_color[i], 'weight': 'bold', 'size': f_size,
-                'horizontalalignment': 'center'}
+        my_font[i] = {'family': 'sans-serif', 'color': level_color[i], 'weight': 'heavy', 'size': f_size,
+                'horizontalalignment': 'left'}
 
         fig_1.text(x, y, level_label[i], fontdict=my_font[i])
 
-        x = x + 0.1
+        y = y + 0.08
 
     return fig_1
 

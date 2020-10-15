@@ -251,12 +251,12 @@ class MyDanger:
         self.z_hat = z0_0
         self.H_hat = H0_0
 
-        self.set_v0_danger(eta0_0, z0_0, H0_0)
+        self.set_v0_danger()
 
         # save in storage
         self.stored_eta_hat[0] = copy.copy(self.eta0_0)
-        self.stored_z_hat[0] = copy.copy(z0_0)
-        self.stored_H_hat[0] = copy.copy(H0_0)
+        self.stored_z_hat[0] = copy.copy(self.z0_0)
+        self.stored_H_hat[0] = copy.copy(self.H0_0)
 
         return
 
@@ -318,7 +318,7 @@ class MyDanger:
 
         return
 
-    def set_v0_danger(self, eta, z, H):
+    def set_v0_danger(self):
 
         my_eta = [1, 0, 0, 0, 0]
         my_z = 1
@@ -341,7 +341,11 @@ class MyDanger:
             self.z_hat[vidx] = my_z
             self.H_hat[vidx] = my_H
 
-        return eta, z, H
+            self.lookup_eta_hat[vidx] = my_eta
+            self.lookup_z_hat[vidx] = my_z
+            self.lookup_H_hat[vidx] = my_H
+
+        return
 
     def estimated_from_file(self, f_name: str, percentage: float, extension='pkl'):
         # point to file

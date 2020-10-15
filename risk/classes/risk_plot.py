@@ -143,6 +143,9 @@ class RiskPlot:
         outcomes_list = []
         outcomes_cum = []
 
+        # order:
+        # success, cutoff, abort
+
         self.configs = len(pickle_names)
 
         for f_name in pickle_names:
@@ -156,14 +159,16 @@ class RiskPlot:
             stat = bf.load_pickle_file(f_path)
 
             cum_data.append(stat.cum_success_rate)
-            cum_data.append(stat.cum_fail_rate)
-            cum_data.append(stat.cum_abort_rate)
+            # cum_data.append(stat.cum_fail_rate)
             cum_data.append(stat.cum_cutoff_rate)
+            cum_data.append(stat.cum_abort_rate)
 
             out_data.append(stat.success_list)
-            out_data.append(stat.fail_list)
-            out_data.append(stat.abort_list)
+            # out_data.append(stat.fail_list)
             out_data.append(stat.cutoff_list)
+            out_data.append(stat.abort_list)
+
+            print(len(stat.abort_list))
 
             outcomes_list.append(out_data)
             outcomes_cum.append(cum_data)
@@ -192,12 +197,12 @@ class RiskPlot:
             stat = bf.load_pickle_file(f_path)
 
             cum_data.append(stat.cum_mission_time)
-            cum_data.append(stat.cum_abort_rate)
             cum_data.append(stat.cum_capture_time)
+            cum_data.append(stat.cum_abort_rate)
 
             out_data.append(stat.mission_time_list)
-            out_data.append(stat.abort_time_list)
             out_data.append(stat.capture_time_list)
+            out_data.append(stat.abort_time_list)
 
             times_list.append(out_data)
             times_cum.append(cum_data)
@@ -215,6 +220,9 @@ class RiskPlot:
 
         plot_n = 1
 
+        # order:
+        # any, other MVA
+
         self.configs = len(pickle_names)
 
         for f_name in pickle_names:
@@ -229,10 +237,11 @@ class RiskPlot:
 
             # actual data collection
             cum_data.append(stat.cum_casualty_mission_rate)
-            cum_data.append(stat.cum_casualty_mvp_rate)
             cum_data.append(stat.cum_casualty_not_mvp_rate)
+            cum_data.append(stat.cum_casualty_mvp_rate)
 
             list_data.append(stat.casualty_list)
+            list_data.append([])
             list_data.append(stat.casualty_mvp)
 
             casualties_list.append(list_data)
@@ -247,28 +256,29 @@ class RiskPlot:
     def plot_error_point(self, plot_n=0):
 
         # get padding
-        self.set_lgd(plot_n)
+
         self.set_x_ticks()
         self.set_title()
+        self.set_lgd(plot_n)
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
 
-        colors = ['bo', 'ro', 'ko', 'mo']
+        colors = ['bo', 'ko', 'ro']
 
         for i in range(self.configs):
 
-            for j in range(len(self.avg[i])):
+            print('Config %d ---- ' %i)
 
-                if plot_n == 0 and j == 1:
-                    # do not plot
-                    continue
+            for j in range(len(self.avg[i])):
 
                 y = self.avg[i][j]
                 std = self.std[i][j]
 
                 if y is None:
                     continue
+
+                print('%s: %.2f +- %.2f' % (self.lgd[j], y, std))
 
                 # make error bar pretty
                 low_error = std
@@ -303,14 +313,8 @@ class RiskPlot:
         f_size = 16
         ax.set_ylabel(self.y_label[plot_n], fontsize=f_size)
 
-        # title and legend
-        # plt.title(self.title[plot_n])
-
         my_handle = []
         for j in range(len(self.avg[0])):
-            if plot_n == 0 and j == 1:
-                continue
-
             my_handle.append(mlines.Line2D([], [], color=colors[j][0], label=self.lgd[j]))
 
         if plot_n == 1:
@@ -361,14 +365,14 @@ class RiskPlot:
             binary_non_mva = []
 
             c_any = copy.copy(config[0])
-            c_mva = copy.copy(config[1])
+            c_mva = copy.copy(config[2])
 
             # missions with casualties
             binary_any = [1 if c > 0 else 0 for c in c_any]
-            print('--\nANY %.4f' % (sum(binary_any)/1000))
+            # print('--\nANY %.4f' % (sum(binary_any)/1000))
             # MVA
             binary_mva = [1 if c is True else 0 for c in c_mva]
-            print('MVA %.4f' % (sum(binary_mva)/1000))
+            # print('MVA %.4f' % (sum(binary_mva)/1000))
 
             for i in N:
 
@@ -379,8 +383,9 @@ class RiskPlot:
                     binary_non_mva.append(1.0)
                 else:
                     binary_non_mva.append(0.0)
-            print('N-MVA %.4f\n---' % (sum(binary_non_mva)/1000))
-            config_casual.append([binary_any, binary_mva, binary_non_mva])
+            # print('N-MVA %.4f\n---' % (sum(binary_non_mva)/1000))
+
+            config_casual.append([binary_any, binary_non_mva, binary_mva])
 
         return config_casual
 
@@ -460,9 +465,9 @@ class RiskPlot:
         self.title.append('Missions with Casualties')
         self.title.append('Mission Times')
 
-        self.y_label = ['Percentage of Missions [\%]', 'Percentage of Missions [\%]', 'Time [steps]']
+        self.y_label = ['Missions [ \% ]', 'Missions [ \% ]', 'Average Time [ steps ]']
 
-        self.fig_name = ['mission_outcomes', 'casualties', 'times']
+        self.fig_name = ['mission_outcomes2', 'casualties2', 'times2']
 
     def set_config_names(self):
 
@@ -476,11 +481,11 @@ class RiskPlot:
 
     def set_lgd(self, n_plot=0):
         if n_plot == 0:
-            self.lgd = ['Success', 'Failure', 'Abort', 'Cutoff']
+            self.lgd = ['Success', 'Cutoff', 'Abort']
         elif n_plot == 1:
-            self.lgd = ['Any', 'MVA', 'Other']
+            self.lgd = ['Any', 'N-MVA', 'MVA']
         elif n_plot == 2:
-            self.lgd = ['Average', 'Abort', 'Capture']
+            self.lgd = ['End', 'Capture', 'Abort']
 
     def set_x_ticks(self):
 
@@ -489,8 +494,8 @@ class RiskPlot:
         I100 = 'A priori: uniform, estimation: 100\% images'
         I5 = 'A priori: uniform, estimation: 5\% images'
         NC = 'No danger constraints'
-
-        self.x_list = ['ND', 'PK', 'I100', 'I5', 'NC']
+        # 'I100',
+        self.x_list = ['ND', 'PK', 'I5', 'NC']
 
     # --------------------------------------
     # File path

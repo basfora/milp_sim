@@ -109,7 +109,7 @@ def add_kappa_prob(md, my_vars: dict, vertices_t: dict, list_H: list, list_alpha
 def add_danger_constraints(md, my_vars: dict, vertices_t: dict, danger, searchers: dict, horizon: int):
     # point estimate (UT - ok)
     if danger.perception == danger.options[0]:
-        list_kappa = rp.get_kappa(searchers)
+        list_kappa = danger.kappa
         # list of current estimated danger, list_z_hat = [zhat_v1, zhat_v2, ..., zhat_vn]
         list_z_hat = danger.z_hat
         # add danger constraints
@@ -117,10 +117,8 @@ def add_danger_constraints(md, my_vars: dict, vertices_t: dict, danger, searcher
 
     elif danger.perception == danger.options[1]:
         list_alpha = rp.get_alpha(searchers)
-        list_kappa = rp.get_kappa(searchers)
-        list_eta = danger.eta_hat
         # prep list_H with kappa
-        list_H = danger.compute_all_H(list_eta, list_kappa)
+        list_H = danger.compute_all_H(danger.eta_hat, danger.kappa)
 
         # add danger constraints
         add_kappa_prob(md, my_vars, vertices_t, list_H, list_alpha, horizon)
@@ -291,7 +289,12 @@ def distributed_wrapper(g, horizon, searchers, b0, M_target, danger, gamma, time
 
             if md.SolCount == 0:
                 # problem was infeasible or other error (no solution found)
-                print('Error, no solution found!')
+                print('x---------------------------------\nError, no solution found!')
+                v_s = start[s_id-1]
+                print('Searcher %d at vertex %d' % (s_id, v_s))
+                list_H = danger.compute_all_H(danger.eta_hat, danger.kappa)
+                print('H(o) = %s \nx---------------------------------x' % str(list_H[v_s-1]))
+
                 obj_fun, time_sol, gap, threads = -1, -1, -1, -1
                 # keep previous belief
                 b_target = {}

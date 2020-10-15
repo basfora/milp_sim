@@ -283,8 +283,6 @@ class MyInputs2(MyInputs):
 
         if self.homogeneous_team is True:
             my_code.append('HH')
-        elif len(unique) > 1:
-            my_code.append('HHT')
         else:
             my_code.append('HT')
 

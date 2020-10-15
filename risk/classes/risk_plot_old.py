@@ -179,9 +179,15 @@ class RiskPlot:
         n_sub = len(per_list)
 
         for i in range(n_sub):
-            fig_1, ax_arr = plt.subplots(1, 1, figsize=(9, 5), dpi=150)
 
-            mg.plot_ss2(bloat)
+            if i == 0:
+                continue
+
+            fig = plt.figure(figsize=(6, 4), dpi=200)
+
+            # fig_1, ax_arr = plt.subplots(1, 1, figsize=(9, 5), dpi=150)
+
+            mg.plot_ss2(bloat, True, 'dimgray')
 
             mg.plot_graph(bloat, True, True)
 
@@ -198,14 +204,24 @@ class RiskPlot:
 
                     self.plot_points([v], my_color, 'o', 6)
 
-            xy = [0.2, 0.15]
-            rpf.my_hazard_labels(fig_1, xy, 16)
+            xy = [0.125, 0.15]
+            rpf.my_hazard_labels(fig, xy, 14)
 
-            my_str = 'Danger Graph, ' + str(per_list[i]) + '\% images'
-            plt.title(my_str)
+            plt.xlim(right=72, left=-7)  # adjust the right leaving left unchanged
+            plt.ylim(bottom=-0.5, top=59)
+
+            plt.axis('off')
+
+            my_str = 'School Scenario' #'Danger Graph, ' + str(per_list[i]) + '\% images'
+            # plt.title(my_str, fontsize=20, weight='heavy')
+
+            # save fig
+            fig_path = MyDanger.get_folder_path('figs')
+            fig_name = fig_path + '/ss2' + '.pdf'
+            fig.savefig(fig_name, bbox_inches='tight')
 
             fig_name = 'danger_graph_' + str(per_list[i])
-            mg.save_plot(fig_name, 'figs', '.png')
+            mg.save_plot(fig_name, 'figs', '.pdf')
 
             # plt.show()
 

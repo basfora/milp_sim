@@ -72,9 +72,9 @@ def create_danger(specs):
     danger.set_true(specs.danger_true)
 
     if specs.true_priori is False:
-        danger.set_priori(specs.danger_priori)
         # if danger hat is None, it's gonna use the true values
         danger.set_estimate(specs.danger_hat)
+        danger.set_priori(specs.danger_priori)
     else:
         danger.uniform_priori = False
 

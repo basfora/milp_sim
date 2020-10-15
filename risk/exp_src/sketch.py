@@ -4,6 +4,7 @@ from milp_sim.risk.classes.child_mespp import MyInputs2
 from milp_sim.risk.src import risk_parameters as rp, plan_risk as plnr, base_fun as bf
 import math
 import numpy as np
+from milp_sim.risk.exp_src import icra_default as icra
 
 def get_specs():
 
@@ -128,34 +129,65 @@ if __name__ == "__main__":
     #     print(str(prob_per))
     # A = np.array([1, 2])
     # print(A[1])
-    f_path = MyDanger.get_folder_path('danger_files/scores')
-    f_name = f_path + '/' + 'node_score_final_dict_Fire.p'
+    # f_path = MyDanger.get_folder_path('danger_files/scores')
+    # f_name = f_path + '/' + 'node_score_final_dict_Fire.p'
+    #
+    # f_path_danger = MyDanger.get_folder_path('danger_files')
+    # f_name_danger = f_path_danger + '/' + 'danger_map_NCF_freq_100.pkl'
+    # f_name_05 = f_path_danger + '/' + 'danger_map_NCF_freq_05.pkl'
+    # eta = bf.load_pickle_file(f_name_danger)
+    # eta_5 = bf.load_pickle_file(f_name_05)
+    # xi = bf.load_pickle_file(f_name)
+    #
+    # levels = [1, 2, 3, 4, 5]
+    # print('100\% images')
+    # print('5\% images')
+    # for v in range(1, 46 + 1):
+    #
+    #     print('Vertex %d: %s' %(v, str(eta[v])))
+    #     H = MyDanger.compute_H(eta[v])
+    #     print('H = %s' %str(H))
+    #
+    #     print('Vertex %d: %s' %(v, str(eta_5[v])))
+    #     H = MyDanger.compute_H(eta_5[v])
+    #     print('H = %s' % str(H))
+    #     print('---------------------------------------------')
+    #
+    #
 
-    f_path_danger = MyDanger.get_folder_path('danger_files')
-    f_name_danger = f_path_danger + '/' + 'danger_map_NCF_freq_100.pkl'
-    eta = bf.load_pickle_file(f_name_danger)
-    xi = bf.load_pickle_file(f_name)
 
-    levels = [1, 2, 3, 4, 5]
-
-    for v in range(1, len(xi) + 1):
-        xi_v = xi[v]
-        print('There is %d images in this vertex' % len(xi_v))
-        img_d = []
-        desc = []
-        for img in xi_v:
-            d_im = []
-            desc.append(img[1])
-            for cond in img:
-                d = compute_avg(img[1])
-                img_d.append(d)
-                d_im.append(d)
-        # d_vertex = [sum(img_d)/len(img_d)
-        if v > 40:
-            print('Vertex %d, scores = %s' %(v, str(desc)))
-            print(eta[v])
+    # for v in range(1, len(xi) + 1):
+    #     xi_v = xi[v]
+    #     print('There is %d images in this vertex' % len(xi_v))
+    #     img_d = []
+    #     desc = []
+    #     for img in xi_v:
+    #         d_im = []
+    #         desc.append(img[1])
+    #         for cond in img:
+    #             d = compute_avg(img[1])
+    #             img_d.append(d)
+    #             d_im.append(d)
+    #     # d_vertex = [sum(img_d)/len(img_d)
+    #     if v > 40:
+    #         print('Vertex %d, scores = %s' %(v, str(desc)))
+    #         print(eta[v])
 
 
+    specs = icra.specs_basic()
+
+    for turn in specs.list_turns:
+
+        # set seed according to run #
+        specs.set_seeds(turn)
+        # set new belief
+        n = 46
+        b0 = MyInputs2.pick_random_belief(n, specs.target_seed)
+
+        # print(b0)
+
+        if turn > 30:
+            break
 
 
 
