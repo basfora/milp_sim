@@ -50,6 +50,7 @@ class MyGazeboSim:
         killed = []
         v0 = []
 
+        i = 0
         for s_id in self.S_original:
             v = v_current[s_id - 1]
             # if it already died, don't count with it
@@ -59,7 +60,7 @@ class MyGazeboSim:
             else:
                 alive.append(s_id)
                 v0.append(v)
-                s_new = v0.index(v) + 1
+                s_new = len(v0)
                 self.id_map.append((s_id, s_new))
 
         return alive, killed, v0
@@ -372,11 +373,11 @@ if __name__ == '__main__':
     for v in v_maybe:
         b_dummy[v] = 1./ 6
     # current positions
-    pos_dummy = [2, 3, 4]
-    # pos_dummy = [1, 1, 1]
-    visited_dummy = [1, 3]
+    # pos_dummy = [2, 3, 4]
+    pos_dummy = [1, 1, 1]
+    visited_dummy = [1]
     sim_op = 1
-    t = 3
+    t = 0
 
     my_sim = MyGazeboSim(pos_dummy, b_dummy, visited_dummy, t, sim_op)
     plan, belief_vector, visited = my_sim.output_results()

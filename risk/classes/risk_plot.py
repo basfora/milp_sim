@@ -174,6 +174,40 @@ class RiskPlot:
 
         self.plot_error_point(0)
 
+    def retrieve_times(self, pickle_names: list):
+
+        times_list = []
+        times_cum = []
+
+        self.configs = len(pickle_names)
+
+        for f_name in pickle_names:
+
+            print('Getting data from %s' % f_name)
+            out_data = []
+            cum_data = []
+
+            f_path = self.get_file_path(f_name)
+            # load pickle file
+            stat = bf.load_pickle_file(f_path)
+
+            cum_data.append(stat.cum_mission_time)
+            cum_data.append(stat.cum_abort_rate)
+            cum_data.append(stat.cum_capture_time)
+
+            out_data.append(stat.mission_time_list)
+            out_data.append(stat.abort_time_list)
+            out_data.append(stat.capture_time_list)
+
+            times_list.append(out_data)
+            times_cum.append(cum_data)
+
+        self.cum_times = times_cum
+        self.times = times_list # self.change_format_outcomes(self.N, times_list)
+        self.compute_MC(2)
+
+        self.plot_error_point(2)
+
     def retrieve_casualties(self, pickle_names: list):
 
         casualties_list = []
@@ -233,19 +267,26 @@ class RiskPlot:
                 y = self.avg[i][j]
                 std = self.std[i][j]
 
+                if y is None:
+                    continue
+
                 # make error bar pretty
                 low_error = std
                 up_error = std
 
                 if plot_n < 2:
-                    if y + std > 1.0:
-                        low_error = std
-                        up_error = 0.0
-                    elif y - std < 0.0:
-                        up_error = std[0]
-                        low_error = 0.0
+                    max_y = 1.0
+                else:
+                    max_y = 100
 
-                # if plot_n < 2:
+                if y + std > max_y:
+                    low_error = std
+                    up_error = max_y - y
+                elif y - std < 0.0:
+                    up_error = std
+                    low_error = y
+
+                if plot_n < 2:
                     y = self.prob_to_per(y)
                     low_error = self.prob_to_per(low_error)
                     up_error = self.prob_to_per(up_error)
@@ -263,7 +304,7 @@ class RiskPlot:
         ax.set_ylabel(self.y_label[plot_n], fontsize=f_size)
 
         # title and legend
-        plt.title(self.title[plot_n])
+        # plt.title(self.title[plot_n])
 
         my_handle = []
         for j in range(len(self.avg[0])):
@@ -272,10 +313,13 @@ class RiskPlot:
 
             my_handle.append(mlines.Line2D([], [], color=colors[j][0], label=self.lgd[j]))
 
-        plt.legend(handles=my_handle, frameon=False)
-
         if plot_n == 1:
-            plt.legend(loc='upper left')
+            my_loc = 'center left'
+        elif plot_n == 0:
+            my_loc = 'center left'
+        else:
+            my_loc = 'center left'
+        plt.legend(handles=my_handle, frameon=False, loc=my_loc)
 
         # save fig
         fig_path = MyDanger.get_folder_path('figs')
@@ -314,35 +358,28 @@ class RiskPlot:
         config_casual = []
         for config in casualty_list:
 
-            binary_any = []
-            binary_mva = []
             binary_non_mva = []
 
             c_any = copy.copy(config[0])
             c_mva = copy.copy(config[1])
 
+            # missions with casualties
+            binary_any = [1 if c > 0 else 0 for c in c_any]
+            print('--\nANY %.4f' % (sum(binary_any)/1000))
+            # MVA
+            binary_mva = [1 if c is True else 0 for c in c_mva]
+            print('MVA %.4f' % (sum(binary_mva)/1000))
+
             for i in N:
 
                 idx = i - 1
 
-                # missions with casualties
-                if c_any[idx] > 0:
-                    binary_any.append(1.0)
-                else:
-                    binary_any.append(0.0)
-
-                # MVA
-                if c_mva[idx]:
-                    binary_mva.append(1.0)
-                else:
-                    binary_mva.append(0.0)
-
                 # other
-                if (c_any[idx] > 0 and c_mva[idx] is False) or c_any[idx] > 1:
+                if (binary_any[idx] == 1 and binary_mva[idx] == 0) or c_any[idx] > 1:
                     binary_non_mva.append(1.0)
                 else:
                     binary_non_mva.append(0.0)
-
+            print('N-MVA %.4f\n---' % (sum(binary_non_mva)/1000))
             config_casual.append([binary_any, binary_mva, binary_non_mva])
 
         return config_casual
@@ -363,9 +400,12 @@ class RiskPlot:
         elif plot_n == 1:
             metric = self.casualties
             cum_metric = self.cum_casualties
-        else:
+        elif plot_n == 2:
             metric = self.times
             cum_metric = self.cum_times
+
+        else:
+            return
 
         i = -1
         for config in metric:
@@ -377,6 +417,11 @@ class RiskPlot:
             for rate in config:
                 j += 1
                 avg, std = self.compute_avg(rate)
+
+                if not isinstance(avg, float) and not isinstance(avg, int):
+                    avg = None
+                    std = None
+
                 avg_config.append(avg)
                 std_config.append(std)
 
@@ -388,6 +433,9 @@ class RiskPlot:
 
     @staticmethod
     def sanity_check(avg1, avg2):
+
+        if avg1 is None or avg2 is None:
+            return False
 
         if round(avg1, 2) == round(avg2, 2):
             return True
@@ -412,7 +460,7 @@ class RiskPlot:
         self.title.append('Missions with Casualties')
         self.title.append('Mission Times')
 
-        self.y_label = ['Percentage [\%]', 'Percentage [\%]', 'Time [steps]']
+        self.y_label = ['Percentage of Missions [\%]', 'Percentage of Missions [\%]', 'Time [steps]']
 
         self.fig_name = ['mission_outcomes', 'casualties', 'times']
 
@@ -430,9 +478,9 @@ class RiskPlot:
         if n_plot == 0:
             self.lgd = ['Success', 'Failure', 'Abort', 'Cutoff']
         elif n_plot == 1:
-            self.lgd = ['Casualty: True', 'Most Valuable Agent', 'Other Agent']
+            self.lgd = ['Any', 'MVA', 'Other']
         elif n_plot == 2:
-            self.lgd = ['Average Mission Time', 'Capture Time']
+            self.lgd = ['Average', 'Abort', 'Capture']
 
     def set_x_ticks(self):
 

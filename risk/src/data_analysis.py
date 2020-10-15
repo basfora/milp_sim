@@ -174,7 +174,8 @@ def plot_for_paper():
     pickle_list = ['1013NCNKHT-n-0', '1012DCDKHT-h-PK', '1012DCDKHT-h-100', '1012DCDKHT-h-05', '1012NCDKHT-h-NA']
 
     # rp.retrieve_outcomes(pickle_list)
-    rp.retrieve_casualties(pickle_list)
+    # rp.retrieve_casualties(pickle_list)
+    rp.retrieve_times(pickle_list)
 
 
 if __name__ == '__main__':

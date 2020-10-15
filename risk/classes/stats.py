@@ -180,14 +180,14 @@ class MyStats:
         save_path = data_compiled_path + '/' + f_name
         return save_path
 
-    def assemble_middle(self):
-        prob = self.p_type
-        add = '_' + self.extra
-
-        graphname = prob + self.perception + add +'_G46Vss2_'
-        my_name = '_' + str(self.img_per).zfill(2) + graphname + self.date_name + '_'
-
-        self.middle_name = my_name
+    # def assemble_middle(self):
+    #     prob = self.p_type
+    #     add = '_' + self.extra
+    #
+    #     graphname = prob + self.perception + add +'_G46Vss2_'
+    #     my_name = '_' + str(self.img_per).zfill(2) + graphname + self.date_name + '_'
+    #
+    #     self.middle_name = my_name
 
     @staticmethod
     def get_img_per(percentage: int):
