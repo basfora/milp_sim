@@ -1282,6 +1282,17 @@ class MyDanger:
                   % (v, str(eta_true), str(eta_25), str(eta_10)))
             print('Point Estimate, z_true = %d, z_25 = %d, z_10 = %d \n ---' % (z_true, z_25, z_10))
 
+    @staticmethod
+    def print_distribution(f_name: str):
+        f_path_danger = MyDanger.get_folder_path('danger_files')
+        f_name_danger = f_path_danger + '/' + f_name + '.pkl'
+        eta = bf.load_pickle_file(f_name_danger)
+
+        for v in eta.keys():
+            print('Vertex %d, eta = %s ' % (v, eta[v]))
+            H = MyDanger.compute_H(eta[v])
+            print('H = %s' % str(H))
+
 
 
 

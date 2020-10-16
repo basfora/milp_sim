@@ -112,6 +112,8 @@ def compute_avg(score: list):
     d = round(my_sum/nrm, 2)
     return d
 
+
+
 if __name__ == "__main__":
     # default
     # MyDanger.fake_data_for_testing()

@@ -171,6 +171,10 @@ class MyGazeboSim:
             self.specs_335()
         elif self.sim_op == 8:
             self.specs_335_prob()
+        elif self.sim_op == 9:
+            self.specs_new_gt_point()
+        elif self.sim_op == 10:
+            self.specs_new_gt_prob()
         else:
             exit(print('Please provide a valid sim option.'))
 
@@ -313,6 +317,47 @@ class MyGazeboSim:
         alpha = [0.6, 0.6, 0.4]
         self.specs.set_threshold(kappa, 'kappa')
         self.specs.set_threshold(alpha, 'alpha')
+
+    """sim_op 9"""
+    def specs_new_gt_point(self):
+        self.specs_basic()
+
+        # danger files
+        # true danger file
+        true_file = 'gt_danger_NFF'
+        self.specs.set_danger_file(true_file, 'true')
+        # ----------------------------------------
+        # estimating danger with 5% images
+        # ----------------------------------------
+        per = 5
+        estimated_file = 'estimate_danger_fire_des_NFF_freq_05'
+        # estimated danger file
+        self.specs.set_danger_file(estimated_file, 'hat')
+
+        # threshold of searchers
+        kappa = [3, 4, 5]
+        alpha = [0.6, 0.4, 0.4]
+        self.specs.set_threshold(kappa, 'kappa')
+        self.specs.set_threshold(alpha, 'alpha')
+
+        # danger perception
+        perception = 'point'
+        self.specs.set_danger_perception(perception)
+
+        # Apply prob kill (true/false)
+        # hybrid prob (op 3)
+        default_prob = 3
+        self.specs.set_kill(True, default_prob)
+        self.specs.set_mva_conservative(True)
+        self.specs.set_use_fov(True)
+        self.specs.set_true_estimate(False)
+
+    """sim_op 10"""
+    def specs_new_gt_prob(self):
+        self.specs_new_gt_point()
+        # danger perception
+        perception = 'point'
+        self.specs.set_danger_perception(perception)
 
     # --------------------------------------------------------------------------------
     # Simulate and save
