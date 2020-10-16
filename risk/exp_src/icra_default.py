@@ -248,11 +248,14 @@ def specs_new_true_point():
     return specs
 
 
-def specs_new_true_prob():
+def specs_new_true_335():
     specs = specs_new_true_point()
 
-    perception = 'prob'
-    specs.set_danger_perception(perception)
+    # threshold of searchers
+    kappa = [3, 3, 5]
+    alpha = [0.6, 0.6, 0.4]
+    specs.set_threshold(kappa, 'kappa')
+    specs.set_threshold(alpha, 'alpha')
 
 
 

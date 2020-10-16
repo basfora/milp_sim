@@ -174,7 +174,7 @@ class MyGazeboSim:
         elif self.sim_op == 9:
             self.specs_new_gt_point()
         elif self.sim_op == 10:
-            self.specs_new_gt_prob()
+            self.specs_new_gt_335()
         else:
             exit(print('Please provide a valid sim option.'))
 
@@ -353,11 +353,14 @@ class MyGazeboSim:
         self.specs.set_true_estimate(False)
 
     """sim_op 10"""
-    def specs_new_gt_prob(self):
+    def specs_new_gt_335(self):
         self.specs_new_gt_point()
         # danger perception
-        perception = 'point'
-        self.specs.set_danger_perception(perception)
+        # threshold of searchers
+        kappa = [3, 3, 5]
+        alpha = [0.6, 0.6, 0.4]
+        self.specs.set_threshold(kappa, 'kappa')
+        self.specs.set_threshold(alpha, 'alpha')
 
     # --------------------------------------------------------------------------------
     # Simulate and save
