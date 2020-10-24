@@ -65,10 +65,11 @@ def create_danger(specs):
     # if you are using fov
     danger.set_use_fov(specs.fov)
 
-    # true priori knowledge
+    # true priori knowledge (true or false)
     danger.set_true_priori(specs.true_priori)
 
     # parse actual values or files
+    # order: true, priori, estimate
     danger.set_true(specs.danger_true)
 
     if specs.true_priori is False:
@@ -118,10 +119,7 @@ def create_solver_data(specs):
     return solver_data
 
 
-# -----------------------------------------
-# searchers-related functions
-# -----------------------------------------
-def create_searchers(specs):
+def create_team(specs):
     # TODO move this to team class later
 
     # unpack from specs
@@ -150,12 +148,16 @@ def create_searchers(specs):
         print("Vertex out of range, V = {1, 2...n}")
         return None
 
-    team = MyTeam2()
+    team = MyTeam2(m)
     team.create_dict_searchers(g, v0, kappa, alpha, capture_range, zeta)
     team.set_danger_perception(specs.perception)
 
     return team
 
+
+# -----------------------------------------
+# searchers-related functions
+# -----------------------------------------
 
 # deprecated - into team
 def get_kappa(searchers: dict):

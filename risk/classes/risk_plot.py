@@ -7,9 +7,11 @@ import matplotlib.lines as mlines
 from milp_sim.risk.src import plots_funs as pfs
 import copy
 import os
-from scipy.stats import sem, t
-from scipy import mean as mean_sp
+#from scipy.stats import sem
+import scipy.stats
 import numpy as np
+
+
 
 class RiskPlot:
 
@@ -27,6 +29,10 @@ class RiskPlot:
 
         self.avg = []
         self.std = []
+
+        self.mean = []
+        self.y_low = []
+        self.y_up = []
 
         self.title = []
         self.lgd = []
@@ -168,7 +174,7 @@ class RiskPlot:
             out_data.append(stat.cutoff_list)
             out_data.append(stat.abort_list)
 
-            print(len(stat.abort_list))
+            print('Missions aborted: %d' % len(stat.abort_list))
 
             outcomes_list.append(out_data)
             outcomes_cum.append(cum_data)
@@ -215,6 +221,8 @@ class RiskPlot:
 
     def retrieve_casualties(self, pickle_names: list):
 
+        print('Collecting casualties...')
+
         casualties_list = []
         casualties_cum = []
 
@@ -244,6 +252,8 @@ class RiskPlot:
             list_data.append([])
             list_data.append(stat.casualty_mvp)
 
+            print('Missions with MVA/any casualty: %d / %d' % (stat.casualty_counter_mvp, stat.casualty_counter_any))
+
             casualties_list.append(list_data)
             casualties_cum.append(cum_data)
 
@@ -264,58 +274,57 @@ class RiskPlot:
         fig = plt.figure()
         ax = fig.add_subplot(111)
 
-        colors = ['bo', 'ko', 'ro']
+        marker_size = 6
+
+        colors = ['bo', 'ks', 'ro']
+        my_markers = ['o', 's', 'o']
 
         for i in range(self.configs):
 
-            print('Config %d ---- ' %i)
+            print('------\nConfig %d ---- ' % i)
 
             for j in range(len(self.avg[i])):
 
-                y = self.avg[i][j]
                 std = self.std[i][j]
+                y = self.mean[i][j]
+
+                y = self.avg[i][j]
+                y_low = self.y_low[i][j]
+                y_up = self.y_up[i][j]
 
                 if y is None:
                     continue
 
                 print('%s: %.2f +- %.2f' % (self.lgd[j], y, std))
 
-                # make error bar pretty
-                low_error = std
-                up_error = std
+                # # make error bar pretty
+                low_error = y_low
+                up_error = y_up
 
-                if plot_n < 2:
-                    max_y = 1.0
-                else:
-                    max_y = 100
-
-                if y + std > max_y:
-                    low_error = std
-                    up_error = max_y - y
-                elif y - std < 0.0:
-                    up_error = std
-                    low_error = y
-
+                assy = None
                 if plot_n < 2:
                     y = self.prob_to_per(y)
-                    low_error = self.prob_to_per(low_error)
-                    up_error = self.prob_to_per(up_error)
 
-                assy = np.array([[low_error, up_error]]).T
+                else:
+                    assy = np.array([[low_error, up_error]]).T
 
                 # make into lists
                 x = [self.x_list[i]]
                 y = [y]
 
                 plt.errorbar(x, y, yerr=assy, fmt=colors[j])
-
+                # markersize=marker_size, marker=my_markers[j]
         # plot labels
         f_size = 16
         ax.set_ylabel(self.y_label[plot_n], fontsize=f_size)
 
         my_handle = []
+
         for j in range(len(self.avg[0])):
-            my_handle.append(mlines.Line2D([], [], color=colors[j][0], label=self.lgd[j]))
+            if plot_n == 2:
+                my_handle.append(mlines.Line2D([], [], marker=my_markers[j], markersize=8, color=colors[j][0], label=self.lgd[j]))
+            else:
+                my_handle.append(mlines.Line2D([], [], linestyle='None', marker=my_markers[j], markersize=7, color=colors[j][0], label=self.lgd[j]))
 
         if plot_n == 1:
             my_loc = 'center left'
@@ -323,7 +332,8 @@ class RiskPlot:
             my_loc = 'center left'
         else:
             my_loc = 'center left'
-        plt.legend(handles=my_handle, frameon=False, loc=my_loc)
+
+        plt.legend(handles=my_handle, frameon=False, loc=my_loc, fontsize=16)
 
         # save fig
         fig_path = MyDanger.get_folder_path('figs')
@@ -419,9 +429,15 @@ class RiskPlot:
 
             avg_config = []
             std_config = []
+
+            mean_config = []
+            low_config = []
+            up_config = []
+
             for rate in config:
                 j += 1
                 avg, std = self.compute_avg(rate)
+                my_mean, y_low, y_high = self.mean_confidence_interval(rate)
 
                 if not isinstance(avg, float) and not isinstance(avg, int):
                     avg = None
@@ -430,11 +446,19 @@ class RiskPlot:
                 avg_config.append(avg)
                 std_config.append(std)
 
+                mean_config.append(my_mean)
+                low_config.append(y_low)
+                up_config.append(y_high)
+
                 if self.sanity_check(avg, cum_metric[i][j][-1]) is False:
                     print('config = %d, metric = %d' % (i, j))
 
             self.avg.append(avg_config)
             self.std.append(std_config)
+
+            self.mean.append(mean_config)
+            self.y_low.append(low_config)
+            self.y_up.append(up_config)
 
     @staticmethod
     def sanity_check(avg1, avg2):
@@ -456,6 +480,14 @@ class RiskPlot:
 
         return avg, std
 
+    @staticmethod
+    def mean_confidence_interval(data, confidence=0.95):
+        a = 1.0 * np.array(data)
+        n = len(a)
+        m, se = np.mean(a), scipy.stats.sem(a)
+        h = se * scipy.stats.t.ppf((1 + confidence) / 2., n - 1)
+        return m, h, h
+
     # --------------------------------------
     # Plot padding
     # --------------------------------------
@@ -467,7 +499,7 @@ class RiskPlot:
 
         self.y_label = ['Missions [ \% ]', 'Missions [ \% ]', 'Average Time [ steps ]']
 
-        self.fig_name = ['mission_outcomes2', 'casualties2', 'times2']
+        self.fig_name = ['mission_outcomes5', 'casualties5', 'times5']
 
     def set_config_names(self):
 
@@ -495,7 +527,8 @@ class RiskPlot:
         I5 = 'A priori: uniform, estimation: 5\% images'
         NC = 'No danger constraints'
         # 'I100',
-        self.x_list = ['ND', 'PK', 'I5', 'NC']
+        self.x_list = ['ND', 'PK-PT', 'PK-PB', 'PU-PT', '335','PU-PB', 'NC']
+        # self.x_list = ['I5-PT-345', 'I5-PT-335']
 
     # --------------------------------------
     # File path

@@ -14,13 +14,15 @@ def test_compute_H():
     assert b is True
 
     list_k = [2, 4]
-    L = [1, 2, 3, 4, 5]
+
+    # sum for each level
+    H2 = MyDanger.compute_H(eta)
+    assert H2 == [0.1, 0.4, 0.6, 0.8, 1.0]
 
     H1 = MyDanger.compute_H(eta, list_k)
-    H2 = MyDanger.compute_H(eta)
-
-    assert H1 == [0.4, 0.8]
-    assert H2 == [0.1, 0.4, 0.6, 0.8, 1.0]
+    my_sum2 = 0.1 + 0.3
+    my_sum4 = 0.1 + 0.3 + 0.2 + 0.2
+    assert H1 == [my_sum2, my_sum4]
 
 
 def test_argmax_eta():
@@ -78,6 +80,23 @@ def test_z_from_eta():
     assert z == 4
 
 
+def test_eta_from_z():
+    list_z = [1, 1, 2, 3, 4, 5]
+
+    eta = []
+
+    for z in list_z:
+        eta_v = MyDanger.eta_from_z(z, 1.0)
+        eta.append(eta_v)
+
+    assert eta[0] == [1, 0, 0, 0, 0]
+    assert eta[1] == [1, 0, 0, 0, 0]
+    assert eta[2] == [0, 1, 0, 0, 0]
+    assert eta[3] == [0, 0, 1, 0, 0]
+    assert eta[4] == [0, 0, 0, 1, 0]
+    assert eta[5] == [0, 0, 0, 0, 1]
+
+
 def test_frequentist():
 
     img1 = [0.1, 0.1, 0.6, 0.1, 0.1]
@@ -101,26 +120,36 @@ def test_frequentist():
 def test_compute_apriori():
 
     n = 4
+    op_avg = 1
+    op_conservative = 2
+    op_min_k = 3
+    op_mva = 4
 
-    # default
+    # default with weighted avg
     my_eta1 = None
-    eta0_0, z0_0 = MyDanger.compute_from_value(n, my_eta1)
+    eta0_0, z0_0 = MyDanger.compute_from_value(n, my_eta1, op_avg)
     assert z0_0 == [3, 3, 3, 3]
-    for v in range(n):
-        assert z0_0[v] == 3
-        assert eta0_0[v] == [0.2, 0.2, 0.2, 0.2, 0.2]
+    for v_idx in range(n):
+        assert z0_0[v_idx] == 3
+        assert eta0_0[v_idx] == [0.2, 0.2, 0.2, 0.2, 0.2]
+
+    k = 3
+    eta0_0, z0_0 = MyDanger.compute_from_value(n, my_eta1, op_mva, k)
+    for v_idx in range(n):
+        assert z0_0[v_idx] == 4
+        assert eta0_0[v_idx] == [0.2, 0.2, 0.2, 0.2, 0.2]
 
     # one danger for all vertices
     my_eta2 = 2
-    eta0_0, z0_0 = MyDanger.compute_from_value(n, my_eta2)
+    eta0_0, z0_0 = MyDanger.compute_from_value(n, my_eta2, op_avg)
     assert z0_0 == [2, 2, 2, 2]
-    for v in range(n):
-        assert z0_0[v] == 2
-        assert eta0_0[v] == [0.1, 0.6, 0.1, 0.1, 0.1]
+    for v_idx in range(n):
+        assert z0_0[v_idx] == 2
+        assert eta0_0[v_idx] == [0.1, 0.6, 0.1, 0.1, 0.1]
 
     # one danger level for each vertex
     my_eta3 = [1, 2, 3, 5]
-    eta0_0, z0_0 = MyDanger.compute_from_value(n, my_eta3)
+    eta0_0, z0_0 = MyDanger.compute_from_value(n, my_eta3, op_avg)
     assert z0_0 == [1, 2, 3, 5]
     assert eta0_0[0] == [0.6, 0.1, 0.1, 0.1, 0.1]
     assert eta0_0[1] == [0.1, 0.6, 0.1, 0.1, 0.1]
@@ -129,13 +158,13 @@ def test_compute_apriori():
 
     # prob for each vertex
     my_eta4 = [[0.1, 0.2, 0.3, 0.3, 0.1], [0.3, 0.1, 0.3, 0.1, 0.2], [0.1, 0.2, 0.3, 0.3, 0.1], [0.1, 0.2, 0.3, 0.3, 0.1]]
-    eta0_0, z0_0 = MyDanger.compute_from_value(n, my_eta4)
+    eta0_0, z0_0 = MyDanger.compute_from_value(n, my_eta4, op_conservative)
     assert z0_0 == [4, 3, 4, 4]
-    for v in range(n):
-        assert eta0_0[v] == my_eta4[v]
+    for v_idx in range(n):
+        assert eta0_0[v_idx] == my_eta4[v_idx]
 
     # break ties - z == min k value
-    z = MyDanger.z_from_eta(eta0_0[0], 3, [3, 4, 5])
+    z = MyDanger.z_from_eta(eta0_0[0], op_min_k, [3, 4, 5])
     assert z == 3
 
 
@@ -179,6 +208,9 @@ def get_specs():
     return specs
 
 
+def test_mva():
+    print('hello')
+
 def test_create_and_estimate():
 
     specs = get_specs()
@@ -200,7 +232,13 @@ def test_create_and_estimate():
     # will set lookup equal to a priori
     eta_hat_2 = 0
 
-    danger = MyDanger(g, danger_true, eta_hat_2, danger_priori)
+    # create class
+    danger = MyDanger(g)
+    # set danger values (ground truth, estimate and a priori)
+    danger.set_true(danger_true)
+    danger.set_priori(danger_priori)
+    danger.set_estimate(eta_hat_2)
+
     assert danger.n == len(g.vs)
     assert danger.z0_0 == danger_priori
     assert danger.z == danger_true
@@ -208,10 +246,19 @@ def test_create_and_estimate():
     assert danger.z_hat == danger_priori
     assert danger.lookup_z_hat == danger_priori
 
-    # will set lookup equal to true
+    del danger
+
+    # ----------------------------------------------------------
+    # will set estimate lookup equal to true value
     eta_hat_1 = None
 
-    danger = MyDanger(g, danger_true, eta_hat_1, danger_priori)
+    # create class
+    danger = MyDanger(g)
+    # set danger values (ground truth, estimate and a priori)
+    danger.set_true(danger_true)
+    danger.set_estimate(eta_hat_1)
+    danger.set_priori(danger_priori)
+
     assert danger.n == len(g.vs)
     assert danger.z0_0 == danger_priori
     assert danger.z == danger_true
@@ -219,12 +266,17 @@ def test_create_and_estimate():
     assert danger.z_hat == danger_priori
     assert danger.lookup_z_hat == danger_true
 
-    for v in range(1, 10):
-        assert danger.get_z(v) == danger_true[v - 1]
-        assert danger.get_zhat(v) == danger_priori[v - 1]
-        assert danger.get_from_lookup(v)[1] == danger_true[v - 1]
+    for v in range(1, danger.n + 1):
+        v_idx = v - 1
+        assert danger.get_z(v) == danger_true[v_idx]
+        assert danger.get_zhat(v) == danger_priori[v_idx]
+        # lookup table: equal to true value (eta_hat_1 = None)
+        eta_hat, z_hat, H_hat = danger.get_from_lookup(v)
+        assert z_hat == danger_true[v_idx]
 
-    danger.set_fov(True)
+    # test estimate function
+    op_test = True
+    danger.set_use_fov(True, op_test)
 
     visited_vertices = [1]
     danger.estimate(visited_vertices)
@@ -247,12 +299,6 @@ def test_create_and_estimate():
     for v in range(1, 10):
         assert danger.get_z(v) == danger_true[v - 1]
         assert danger.get_zhat(v) == danger_estimate[v - 1]
-
-    # will set equal to the frequentist from scores
-    eta_hat_3 = 1
-
-
-
 
 
 

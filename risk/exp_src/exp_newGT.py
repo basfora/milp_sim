@@ -27,17 +27,27 @@ if __name__ == "__main__":
     i = 1
     tic = get_timer()
 
-    """3-3-5 PT makeup"""
-    specs = icra.specs_333()
+    """[1] New ground truth I5"""
+    specs = icra.specs_new_true_point()
     icra.num_sim(specs)
     # ---
     del specs
     i, tic = get_time(tic, i)
 
-    # """3-3-5 PROB makeup"""
-    # specs = icra.specs_335_prob()
-    # icra.num_sim(specs)
-    # # ---
-    # del specs
-    # i, tic = get_time(tic, i)
+    """[1] New ground truth I5 335"""
+    specs = icra.specs_new_true_335()
+    icra.num_sim(specs)
+    # ---
+    del specs
+    i, tic = get_time(tic, i)
+
+
+
+
+
+
+
+
+
+
 

@@ -111,6 +111,7 @@ class MyStats:
         """CASUALTIES"""
         # lists
         self.casualty_mvp = []
+        self.casualty_not_mvp = []
         # number of casualties per mission, list[id] = 0/1/2/3
         self.casualty_list = []
 
@@ -118,6 +119,8 @@ class MyStats:
         self.casualty_counter_mvp = 0
         # missions with any casualties
         self.casualty_counter_any = 0
+        # +1 for each mission it happened
+        self.casualty_counter_not_mvp = 0
         # just sum 0/+1/+2/+3
         self.casualty_counter = 0
 
@@ -320,6 +323,14 @@ class MyStats:
         else:
             self.casualty_mvp.append(False)
 
+        # non MVP casualties
+        if c > 0:
+            if ins.casualty_mvp is False or c > 1:
+                self.casualty_counter_not_mvp += 1
+                self.casualty_not_mvp.append(True)
+            else:
+                self.casualty_not_mvp.append(False)
+
     def update_cum_stats(self, ins, q=None):
         if q is None:
             q = ins.id
@@ -357,14 +368,17 @@ class MyStats:
         casualty_rate = self.get_rate(self.casualty_counter, q * self.m)
         # mvp rate: counter_killed_mvp/missions (casualty_rate_MVP = counter_mvp/missions)
         mvp_rate = self.get_rate(self.casualty_counter_mvp, q)
+        not_mvp_rate = self.get_rate(self.casualty_counter_not_mvp, q)
+
         # fraction of missions with casualties
         casualty_mission_rate = self.get_rate(self.casualty_counter_any, q)
-        not_mvp_rate = self.get_rate(self.casualty_counter_any-self.casualty_counter_mvp, q)
+        # not_mvp_rate = self.get_rate(self.casualty_counter_any-self.casualty_counter_mvp, q)
 
         self.cum_casualty_rate.append(casualty_rate)
         self.cum_casualty_mvp_rate.append(mvp_rate)
-        self.cum_casualty_mission_rate.append(casualty_mission_rate)
         self.cum_casualty_not_mvp_rate.append(not_mvp_rate)
+        self.cum_casualty_mission_rate.append(casualty_mission_rate)
+        # self.cum_casualty_not_mvp_rate.append(not_mvp_rate)
 
     def set_final_status(self):
 
@@ -427,7 +441,7 @@ class MyStats:
             assert self.danger_constraints is False
 
         # team parameters
-        self.m = copy.deepcopy(ins.mission.m_input)
+        self.m = copy.deepcopy(ins.team.size_original)
         self.team_hh = ins.mission.homogeneous_team
         self.kappa = ins.mission.kappa
         # time parameters
@@ -533,6 +547,7 @@ class MyInstance:
         self.number_casualties = 0
         self.casualty_mvp = False
         self.casualty = False
+        self.casualty_not_mvp = False
 
         # extract important data
         self.extract_data(data)
@@ -575,16 +590,18 @@ class MyInstance:
 
         if self.abort is True:
             # number casualties = team size
-            self.number_casualties = copy.deepcopy(self.mission.m_input)
+            self.number_casualties = self.team.size_original
             self.casualty_mvp = True
         else:
-            for s in self.mission.casual_ids:
+            for s in self.team.killed:
                 self.number_casualties += 1
                 if s == mvp:
                     self.casualty_mvp = True
 
         if self.number_casualties > 0:
             self.casualty = True
+            if self.number_casualties > 1 or self.casualty_mvp is False:
+                self.non_mvp = True
 
 
 

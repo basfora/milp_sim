@@ -1,4 +1,4 @@
-from milp_sim.risk.src import plan_risk as plnr, risk_parameters as rp
+from milp_sim.risk.src import risk_plan as plnr, risk_param as rp
 from milp_mespp.core import plan_fun as pln
 from milp_mespp.core import sim_fun as sf, extract_info as ext
 import copy

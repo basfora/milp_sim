@@ -166,19 +166,44 @@ def analysis_exp_1012():
 
 
 def plot_for_paper():
-    # TODO retrieve compiled
     # 3 plots mission outcome, casualties, mission times
     rp = RiskPlot()
-    #  [ND, PK, I100, I5, NC]
+    #  [ND, PK, I5, NC]
     #  [0, 1, 2, 3, 4]
-    pickle_list = ['1013NCNKHT-n-0', '1012DCDKHT-h-PK',  '1012DCDKHT-h-05', '1012NCDKHT-h-NA'] #'1012DCDKHT-h-100',
+
+    # fig 1
+    pickle_list = ['1013NCNKHT-n-0', '1012DCDKHT-h-PK',  '1015DCDKHT-PK-prob', '1012DCDKHT-h-05', '1015DCDKHHT-05-PT', '1015DCDKHT-05-prob', '1012NCDKHT-h-NA']
+
+    # FIG 2
+    # pickle_list = ['1012DCDKHT-h-05', ]
 
     rp.retrieve_outcomes(pickle_list)
-    # rp.retrieve_casualties(pickle_list)
-    #rp.retrieve_times(pickle_list)
+    rp.retrieve_casualties(pickle_list)
+    rp.retrieve_times(pickle_list)
+
+
+def compile_data():
+
+    rp = RiskPlot()
+
+    folder_names = ['1015DCDKHHT-05-PT'] # ['1015DCDKHT-PK-prob', '1015DCDKHT-05-prob']
+    instance_base = ['DCDKHT_05hpoint_G46Vss2_1015_']  #  ['DCDKHT_100hprob_PK_G46Vss2_1015_', 'DCDKHT_05hprob_G46Vss2_1015_']
+
+    for i in range(len(folder_names)):
+        rp.retrieve_data(folder_names[i], instance_base[i])
 
 
 if __name__ == '__main__':
 
-    plot_for_paper()
+    # plot_for_paper()
+    # compile_data()
+
+    sim1 = []
+    gazebo_path = MyDanger.get_folder_path('data_saved/gazebo/run1/sim1/1015_000')
+
+    f_name = '/output.pickle'
+
+    sim1.append(gazebo_path + f_name)
+
+    data = bf.load_pickle_file(sim1[0])
 

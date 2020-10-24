@@ -486,7 +486,7 @@ def test_evolve_hazard():
 
         # compare
         assert isinstance(hazard.z[v][t], float)
-        assert hazard.z[v][t] == z[v][t]
+        assert round(hazard.z[v][t], 6) == round(z[v][t], 6)
         assert isinstance(hazard.z_level[v][t], int)
         assert hazard.z_level[v][t] == z_level[v][t]
 

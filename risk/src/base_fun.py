@@ -253,11 +253,13 @@ def save_sim_data(belief, target, team, solver_data, danger, specs, mission, fil
 # handy functions
 # -----------------------
 def smart_min(in_data):
+    """"""
     if isinstance(in_data, int):
         print('Integer input, returning it.')
         return in_data
     else:
         if len(in_data) < 1:
+            print('Empty list, returning None.')
             return None
         else:
             return min(in_data)
@@ -269,14 +271,57 @@ def smart_max(in_data):
         return in_data
     else:
         if len(in_data) < 1:
+            print('Empty list, returning None.')
             return None
         else:
             return max(in_data)
 
 
+def smart_division(in_data, dem=100, dec=2):
+
+    result = None
+
+    if isinstance(in_data, int):
+        result = divide(in_data, dem, dec)
+    elif isinstance(in_data, list):
+        result = []
+        for el in in_data:
+            result.append(divide(el, dem, dec))
+    elif isinstance(in_data, dict):
+        result = {}
+        for k in in_data.keys():
+            result[k] = divide(in_data[k], dem, dec)
+    elif in_data is None:
+        result = None
+    else:
+        print('Division error, %s / %s' % (str(in_data), str(dem)))
+
+    return result
 
 
+def divide(num, dem, dec):
+    return round(num / dem, dec)
 
+
+def next_position(path: dict or list):
+    next_pos = []
+
+    if isinstance(path, dict):
+        for s in path.keys():
+            next_pos.append(path[s][0])
+    elif isinstance(path, list):
+        for s in path:
+            next_pos.append(s[0])
+
+    return next_pos
+
+
+def smart_list_add(list1: list, list2: list):
+    for el in list2:
+        if el not in list1:
+            list1.append(el)
+
+    return list1
 
 
 

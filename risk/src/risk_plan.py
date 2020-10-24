@@ -17,7 +17,7 @@ from milp_mespp.core import construct_model as cm
 from milp_mespp.core import plan_fun as pln
 from gurobipy import *
 
-from milp_sim.risk.src import risk_parameters as rp
+from milp_sim.risk.src import risk_param as rp
 
 
 # -----------------------------------------------------------------------------------
@@ -48,17 +48,20 @@ def add_kappa_point(md, my_vars: dict, vertices_t: dict, list_z_hat: list, list_
     S = ext.get_set_searchers(m)[0]
     T = ext.get_set_time(horizon)
 
+    md.update()
+
     for s in S:
         s_idx = ext.get_python_idx(s)
         # danger threshold (kappa in L = {1,...5})
         kappa = list_kappa[s_idx]
 
+        # 1, 2... T
         for t in T:
             v_t = vertices_t.get((s, t))
 
             for v in v_t:
                 v_idx = ext.get_python_idx(v)
-                # estimate danger level (eta_hat in L = {1,...,5})
+                # estimated danger level (eta_hat in L = {1,...,5})
                 z_hat = list_z_hat[v_idx]
                 md.addConstr(X[s, v, t] * z_hat <= kappa)
 
@@ -289,11 +292,14 @@ def distributed_wrapper(g, horizon, searchers, b0, M_target, danger, gamma, time
 
             if md.SolCount == 0:
                 # problem was infeasible or other error (no solution found)
-                print('x---------------------------------\nError, no solution found!')
+
+                print('x---------------------------------x\nError, no solution found!')
                 v_s = start[s_id-1]
-                print('Searcher %d at vertex %d' % (s_id, v_s))
+                print('Computing path for searcher %d, kappa = %d, currently at vertex %d' % (s_id, searchers[s_id].kappa, v_s))
+                print('z_hat = %s' % str(danger.z_hat[v_s-1]))
+                print('eta_hat = %s' % str(danger.eta_hat[v_s-1]))
                 list_H = danger.compute_all_H(danger.eta_hat, danger.kappa)
-                print('H(o) = %s \nx---------------------------------x' % str(list_H[v_s-1]))
+                print('H_hat = %s \nx---------------------------------x' % str(list_H[v_s-1]))
 
                 obj_fun, time_sol, gap, threads = -1, -1, -1, -1
                 # keep previous belief
@@ -345,7 +351,7 @@ def init_wrapper(specs):
     default: plan only"""
 
     solver_data = rp.create_solver_data(specs)
-    team = rp.create_searchers(specs)
+    team = rp.create_team(specs)
     belief = cp.create_belief(specs)
     target = cp.create_target(specs)
     danger = rp.create_danger(specs)

@@ -1,6 +1,6 @@
 """Standard experiments for ICRA 2021"""
 from milp_sim.risk.classes.child_mespp import MyInputs2
-from milp_sim.risk.src import base_fun as bf, sim_risk as sr
+from milp_sim.risk.src import base_fun as bf, risk_sim as sr
 
 
 def specs_basic():
@@ -73,7 +73,7 @@ def specs_danger_common():
     # Apply prob kill (true/false)
     # hybrid prob (op 3)
     default_prob = 3
-    specs.set_kill(True, default_prob)
+    specs.use_kill(True, default_prob)
     specs.set_mva_conservative(True)
     specs.set_use_fov(True)
     specs.set_true_estimate(False)
@@ -94,8 +94,8 @@ def specs_true_priori():
 
 def specs_no_danger():
     specs = specs_danger_common()
-    specs.set_kill(False)
-    specs.set_danger_constraints(False)
+    specs.use_kill(False)
+    specs.use_danger_constraints(False)
 
     return specs
 
@@ -103,8 +103,8 @@ def specs_no_danger():
 def specs_no_constraints():
     specs = specs_danger_common()
 
-    specs.set_kill(True, 3)
-    specs.set_danger_constraints(False)
+    specs.use_kill(True, 3)
+    specs.use_danger_constraints(False)
 
     return specs
 
@@ -141,6 +141,15 @@ def specs_335():
     specs = specs_danger_common()
 
     kappa = [3, 3, 5]
+    specs.set_threshold(kappa, 'kappa')
+
+    return specs
+
+
+def specs_333():
+    specs = specs_danger_common()
+
+    kappa = [3, 3, 3]
     specs.set_threshold(kappa, 'kappa')
 
     return specs
@@ -240,7 +249,7 @@ def specs_new_true_point():
     # Apply prob kill (true/false)
     # hybrid prob (op 3)
     default_prob = 3
-    specs.set_kill(True, default_prob)
+    specs.use_kill(True, default_prob)
     specs.set_mva_conservative(True)
     specs.set_use_fov(True)
     specs.set_true_estimate(False)
@@ -258,8 +267,21 @@ def specs_new_true_335():
     specs.set_threshold(alpha, 'alpha')
 
 
+def get_believes():
+    specs = specs_basic()
 
+    for turn in specs.list_turns:
 
+        # set seed according to run #
+        specs.set_seeds(turn)
+        # set new belief
+        n = 46
+        b0 = MyInputs2.pick_random_belief(n, specs.target_seed)
+
+        # print(b0)
+
+        if turn > 30:
+            break
 
 
 # ------------------------------------------

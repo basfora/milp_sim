@@ -1,6 +1,6 @@
-from milp_sim.risk.src import plan_risk as plnr, sim_risk as sr
+from milp_sim.risk.src import risk_plan as plnr, risk_sim as sr
 from milp_sim.risk.classes.child_mespp import MyInputs2
-from milp_sim.risk.src import risk_parameters as rp
+from milp_sim.risk.src import risk_param as rp
 
 
 def get_specs():
@@ -128,13 +128,14 @@ def test_run_sim():
 
     specs = get_specs()
 
-    kill = False
-    belief, target, team, solver_data, danger, mission = sr.run_simulator(specs, kill)
+    specs.use_kill(False)
+
+    belief, target, team, solver_data, danger, mission = sr.run_simulator(specs)
     searchers = team.searchers
 
     path_list = {}
 
-    assert team.m_input == 2
+    assert team.m == 2
     assert team.S == [1, 2]
 
     for s_id in searchers.keys():

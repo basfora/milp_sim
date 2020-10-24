@@ -14,7 +14,5 @@ milp_folder = parent_folder + '/' + 'milp_mespp'
 if milp_folder not in my_path:
     sys.path.insert(1, milp_folder)
 
-import core
-import classes
 
 

@@ -8,7 +8,7 @@ class MyTeam2:
     """Dictionary with all searchers to facilitate things"""
 
     def __init__(self, m=1):
-        """m: team size"""
+        """m: original team size"""
 
         # --------------------------
         # ORIGINAL (backup) -- will not be changed
@@ -18,7 +18,7 @@ class MyTeam2:
         self.kappa_original = []
         self.alpha_original = []
         self.perception = 'point'
-        self.size = m
+        self.size_original = m
 
         # --------------------------
         # ALIVE  -- updated and used during simulation
@@ -72,20 +72,25 @@ class MyTeam2:
 
         self.searchers[s_id] = MySearcher2(s_id, v0, g, cap_s, zeta_s)
 
-    def set_original(self):
+    def save_original(self, m):
         """Will not be changed"""
         self.searchers_original = copy.deepcopy(self.searchers)
         self.kappa_original = copy.deepcopy(self.kappa)
         self.alpha_original = copy.deepcopy(self.alpha)
+        self.size_original = m
+        self.set_homogeneous()
 
     def create_dict_searchers(self, g, v0: list, kappa: list, alpha: list, capture_range=0, zeta=None):
-        """Populate dictionary"""
+        """Create dict searchers at time step 0
+        Save original information"""
 
         # set of searchers S = {1,..m}
         S, m = ext.get_set_searchers(v0)
 
-        # create dict
         self.update_size(m)
+
+        # create dict searchers (running info)
+
         self.init_dict()
 
         if len(alpha) < 1:
@@ -102,13 +107,15 @@ class MyTeam2:
         # set danger thresholds for each searcher
         self.set_thresholds(kappa, alpha)
 
+        # set alive list
+        self.update_alive()
+
         # set list for handy retrieve later
         self.set_start_positions()
         self.update_pos_list()
 
-        # set original
-        self.set_original()
-        self.update_alive()
+        # set original searchers, thresholds (saved info)
+        self.save_original(m)
 
         return self.searchers
 
@@ -132,8 +139,6 @@ class MyTeam2:
         self.kappa = kappa
         self.alpha = alpha
 
-        self.is_homogeneous()
-
         for s_id in self.S:
 
             s_idx = ext.get_python_idx(s_id)
@@ -144,21 +149,37 @@ class MyTeam2:
             s.set_kappa(k)
             s.set_alpha(a)
 
-        if self.hh is False:
-            self.searchers[self.mva].set_mva()
+    def set_homogeneous(self):
 
-    def is_homogeneous(self):
+        if self.is_homogeneous(self.kappa_original):
+            self.hh = True
+        else:
+            self.hh = False
+            min_k = bf.smart_min(self.kappa_original)
+            self.mva = self.kappa_original.index(min_k) + 1
+            self.searchers[self.mva].set_mva()
+            self.searchers_original[self.mva].set_mva()
+
+    @staticmethod
+    def is_homogeneous(kappa_list):
+        """Find out if team is homogeneous through kappa list"""
+
         unique = []
-        for k in self.kappa:
+        for k in kappa_list:
             if k not in unique:
                 unique.append(k)
 
         if len(unique) == 1:
-            self.hh = True
+            return True
         else:
-            self.hh = False
-            min_k = min(self.kappa)
-            self.mva = self.kappa.index(min_k) + 1
+            return False
+
+    @staticmethod
+    def all_killed(alive_list: list):
+        if len(alive_list) < 1:
+            return True
+        else:
+            return False
 
     def set_start_positions(self):
         start_pos = []
@@ -212,6 +233,9 @@ class MyTeam2:
                 exit(print('Something is wrong, searchers not updated.'))
 
         self.alive = alive
+
+        if self.all_killed(self.alive):
+            print('It seems all searchers were lost. Abort mission.')
 
         if self.S != self.alive:
             # update current team size

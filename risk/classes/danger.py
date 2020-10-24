@@ -146,9 +146,9 @@ class MyDanger:
 
     def set_mva_conservative(self, status=True):
         self.mva_conservative = status
-        self.set_z_comp()
+        self.set_z_priori_option()
 
-    def set_z_comp(self, op=1):
+    def set_z_priori_option(self, op=1):
         """Choose how to compute z:
         op 1: get maximum prob, if tie pick the one closest to the middle
         op 2: get maximum prob, if tie pick conservative (max value)
@@ -156,10 +156,12 @@ class MyDanger:
         op 4: get max prob, if tie pick min threshold + 1"""
 
         if self.mva_conservative:
+            # option for zeta computation
             self.z_pri_op = 4
-            if len(self.kappa) > 0:
-                self.k_mva = min(self.kappa)
+            # kappa of MVA
+            self.k_mva = bf.smart_min(self.kappa)
         else:
+            # default (1) or chosen option
             self.z_pri_op = op
 
     def set_true_estimate(self, status=False):
@@ -206,7 +208,7 @@ class MyDanger:
             self.fov = None
 
     # ----------------------
-    # Define true, priori and estimate
+    # Define true, priori and estimate values
     # ----------------------
 
     def set_true(self, eta_true):
@@ -232,7 +234,7 @@ class MyDanger:
         # use true value for priori if argument is none and true_priori is True
         if self.true_priori:
             eta0_0, z0_0, H0_0 = self.copy_true_value()
-        elif self.uniform_priori:
+        elif self.uniform_priori and eta_priori is None:
             eta0_0, z0_0 = self.compute_uniform(self.n, self.z_pri_op, self.k_mva)
             H0_0 = self.compute_all_H(eta0_0)
         else:
@@ -357,14 +359,19 @@ class MyDanger:
         self.percentage_im = percentage
         self.estimated_file_path = bf.assemble_file_path(self.folder_path, f_name, extension)
 
-    # UT - ok
+    # ----------------------
+    # From input values
+    # ----------------------
     def gnd_truth_from_value(self, eta_true):
 
         eta, z = self.compute_from_value(self.n, eta_true, self.z_true_op, self.k_mva)
 
+        H = self.compute_all_H(eta)
+
         # eta = [eta_l1,... eta_l5]
         self.eta = eta
         self.z = z
+        self.H = H
 
     def estimated_from_value(self, my_eta_hat):
         """Mostly for testing purposes"""
@@ -404,7 +411,10 @@ class MyDanger:
             self.lookup_z_hat = z_hat
 
         # cumulative distribution for each level
-        self.lookup_H_hat = H_hat
+        if H_hat is None:
+            self.lookup_H_hat = self.compute_all_H(self.lookup_eta_hat)
+        else:
+            self.lookup_H_hat = H_hat
 
     def set_scores(self, xi: str or dict):
 
@@ -469,6 +479,10 @@ class MyDanger:
         self.eta_hat = eta_hat
         self.z_hat = z_hat
         self.H_hat = H_hat
+
+    # ------------------------------------------------------------------
+    # Estimate functions
+    # ------------------------------------------------------------------
 
     # UT - ok
     def estimate(self, visited_vertices):
@@ -738,24 +752,36 @@ class MyDanger:
     def sum_1(eta: list):
         sum_prob = sum(eta)
 
-        if 1 - 0.9 < sum_prob < 1 + 1.1:
+        if 1 - 0.99 < sum_prob < 1 + 1.01:
             return True
         else:
             return False
 
+    @staticmethod
+    def normalize_eta(eta: list):
+
+        if not MyDanger.sum_1(eta):
+            eta_norm = [d / sum(eta) for d in eta]
+        else:
+            eta_norm = eta
+
+        return eta_norm
+
     # UT - ok
     @staticmethod
-    def compute_from_value(n, my_eta, op, k=None):
+    def compute_from_value(n, my_value, op, k=None):
         """Compute initial distribution
         :param n : vertices number |V|
-        :param my_eta : int, list or None
-        :param op
+        :param my_value : int, list or None
+        :param op for z from eta computation
         :param k
         if eta=None argument: set uniform probability
         """
         eta0_0, z0_0 = [], []
 
-        if my_eta is None:
+        # uniform probability (eta --> z)
+        if my_value is None:
+            # this is the default for simulations
             print('Setting uniform probability')
             for v in range(n):
                 eta0_v = [0.2 for i in range(5)]
@@ -764,20 +790,22 @@ class MyDanger:
                 eta0_0.append(eta0_v)
                 z0_0.append(z_v)
 
-        elif isinstance(my_eta, int):
+        # one danger for all vertices (z --> eta)
+        elif isinstance(my_value, int):
             for v in range(n):
-                eta0_0.append(MyDanger.eta_from_z(my_eta))
-                z0_0.append(my_eta)
+                # get eta from z
+                eta0_0.append(MyDanger.eta_from_z(my_value))
+                z0_0.append(my_value)
 
-        elif isinstance(my_eta, list):
+        elif isinstance(my_value, list):
             # list of lists (prob for each vertex)
-            if isinstance(my_eta[0], list):
-                eta0_0 = my_eta
+            if isinstance(my_value[0], list):
+                eta0_0 = my_value
                 for v in range(n):
                     z0_0.append(MyDanger.z_from_eta(eta0_0[v], op, k))
             # list of danger for each vertex
             else:
-                z0_0 = my_eta
+                z0_0 = my_value
                 for v in range(n):
                     eta0_0.append(MyDanger.eta_from_z(z0_0[v]))
 
@@ -823,11 +851,10 @@ class MyDanger:
 
     # UT - ok
     @staticmethod
-    def eta_from_z(my_level: int):
+    def eta_from_z(my_level: int, max_l=0.6):
         """return list"""
         # TODO change if necessary (discrete probability)
-        L = [1, 2, 3, 4, 5]
-        max_l = 0.6
+        L = MyDanger.get_levels()
         o_l = round((1 - max_l)/4, 4)
 
         eta = []
@@ -843,26 +870,26 @@ class MyDanger:
     @staticmethod
     def z_from_eta(eta_v: list, op, k=None):
         """
-        op 1: get maximum prob, if tie pick the one closest to the middle
-        op 2: get maximum prob, if tie pick conservative (max value)
+        op 1: get max prob, if tie pick the one closest to the middle
+        op 2: get max prob, if tie pick conservative (max value)
         op 3: get max prob, if tie pick min threshold for team (break ties)
         op 4: get max prob, if tie pick min threshold + 1"""
 
         z = 1
-        z_list = MyDanger.argmax_eta(eta_v)
+        z_star = MyDanger.argmax_eta(eta_v)
 
         if op == 1:
             # get maximum prob, if tie pick the one closest to the middle
-            z = MyDanger.pick_weighted_avg_z(z_list, eta_v)
+            z = MyDanger.pick_weighted_avg_z(z_star, eta_v)
         elif op == 2:
             # get maximum prob, if tie pick conservative (max value)
-            z = MyDanger.pick_conservative_z(z_list)
+            z = MyDanger.pick_conservative_z(z_star)
         elif op == 3:
             # get max prob, if tie pick min threshold for team (break ties)
-            z = MyDanger.pick_z_from_kappa(z_list, k)
+            z = MyDanger.pick_z_from_kappa(z_star, k)
         elif op == 4:
             # get max prob, if tie pick min threshold + 1
-            z = MyDanger.pick_z_for_mva(z_list, k)
+            z = MyDanger.pick_z_for_mva(z_star, k)
         else:
             exit(print('No other options!'))
 
@@ -874,9 +901,9 @@ class MyDanger:
         """Get list of maximum values (might be just one element)
         return list with at least one element"""
 
-        z_list = [idx + 1 for idx, val in enumerate(eta_v) if val == max(eta_v)]
+        z_star = [idx + 1 for idx, val in enumerate(eta_v) if val == max(eta_v)]
 
-        return z_list
+        return z_star
 
     # UT - ok
     @staticmethod
@@ -972,14 +999,15 @@ class MyDanger:
         """H = sum_1^l eta_l
         return list
         :param eta_v : prob of levels 1,...5
-        :param kappa : list of thresholds, if none do for levels
+        :param kappa : list of thresholds, if none do for all levels (1-5)
         """
 
         H = []
 
-        levels = [1, 2, 3, 4, 5]
+        eta_v = MyDanger.normalize_eta(eta_v)
 
         if kappa is None:
+            levels = MyDanger.get_levels()
             k_list = [level for level in levels]
         else:
             k_list = kappa
@@ -987,8 +1015,6 @@ class MyDanger:
         for level in k_list:
             list_aux = [eta_v[i] for i in range(level)]
             H.append(round(sum(list_aux), 3))
-
-        H[-1] = 1.0
 
         return H
 
@@ -1029,7 +1055,7 @@ class MyDanger:
     @staticmethod
     def define_danger_levels():
         """Danger level notation for all milp_sim"""
-        danger_levels = [1, 2, 3, 4, 5]
+        danger_levels = MyDanger.get_levels()
         n_levels = len(danger_levels)
         level_label = ['Low', 'Moderate', 'High', 'Very High', 'Extreme']
         level_color = ['green', 'blue', 'yellow', 'orange', 'red']
@@ -1038,7 +1064,7 @@ class MyDanger:
 
     @staticmethod
     def get_levels():
-        danger_levels, n_levels, level_label, level_color = MyDanger.define_danger_levels()
+        danger_levels = [1, 2, 3, 4, 5]
 
         return danger_levels
 
@@ -1283,15 +1309,23 @@ class MyDanger:
             print('Point Estimate, z_true = %d, z_25 = %d, z_10 = %d \n ---' % (z_true, z_25, z_10))
 
     @staticmethod
-    def print_distribution(f_name: str):
+    def print_distribution(f_name: str, extension='pkl'):
         f_path_danger = MyDanger.get_folder_path('danger_files')
-        f_name_danger = f_path_danger + '/' + f_name + '.pkl'
+        f_name_danger = f_path_danger + '/' + f_name + '.' + extension
         eta = bf.load_pickle_file(f_name_danger)
 
+        # print for all vertices
         for v in eta.keys():
-            print('Vertex %d, eta = %s ' % (v, eta[v]))
-            H = MyDanger.compute_H(eta[v])
+            eta_v = eta[v]
+            print('---')
+            print('Vertex %d, eta = %s ' % (v, eta_v))
+
+            if not MyDanger.sum_1(eta_v):
+                print('Watch out, distribution does not sum to 1, %.3f' % sum(eta_v))
+            H = MyDanger.compute_H(eta_v)
+            z = MyDanger.z_from_eta(eta_v, 1)
             print('H = %s' % str(H))
+            print('z = %d' % z)
 
 
 

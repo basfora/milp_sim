@@ -16,58 +16,6 @@ import datetime
 from milp_sim.risk.src import base_fun as bf
 
 
-class MySearcher2(MySearcher):
-
-    """Child searcher class for milp_sim (risk)
-    Parent class: MySearcher from milp_mespp.classes"""
-
-    def __init__(self, searcher_id: int, v0: int, g, capture_range=0, zeta=None, my_seed=None):
-        # note: init overrides parent class init
-
-        # inherit parent class methods and properties
-        super().__init__(searcher_id, v0, g, capture_range, zeta, my_seed)
-
-        self.danger_levels = MyDanger.define_danger_levels()[0]
-
-        # initial thresholds
-        # danger threshold
-        self.kappa = 3
-        self.alpha = 0.95
-
-        # type of danger threshold (d - deterministic or p - probabilistic)
-        self.danger_perception = None
-
-        # store danger and beliefs values for vertices visited
-        self.path_kappa = dict()
-
-        # life status
-        self.alive = True
-        self.mva = False
-
-        # original id
-        self.id_0 = searcher_id
-
-    def set_kappa(self, new_kappa):
-        """Update kappa for searcher"""
-        self.kappa = new_kappa
-
-    def set_alpha(self, new_alpha):
-        self.alpha = new_alpha
-
-    def set_alive(self, status=True):
-        """Set life status: alive (true) or dead (false)"""
-        self.alive = status
-
-    def set_new_id(self, s_id):
-        self.id = s_id
-
-    def set_perception(self, op: str):
-        self.danger_perception = op
-
-    def set_mva(self, status=True):
-        self.mva = status
-
-
 class MyInputs2(MyInputs):
     """Child inputs class for milp_sim (risk)
     Parent class: MyInputs from milp_mespp.classes
@@ -130,7 +78,7 @@ class MyInputs2(MyInputs):
 
         self.danger_levels, self.n_levels, self.level_label, self.level_color = MyDanger.define_danger_levels()
 
-    def set_kill(self, status=True, op=3):
+    def use_kill(self, status=True, op=3):
         self.danger_kill = status
         self.prob_id = ''
 
@@ -147,10 +95,10 @@ class MyInputs2(MyInputs):
             self.set_prob_kill(prob_kill)
             self.prob_id = 'n'
 
-    def set_danger_constraints(self, status=True):
+    def use_danger_constraints(self, status=True):
         self.danger_constraints = status
 
-    def set_homo(self, status=False):
+    def hh_team(self, status=False):
         self.homogeneous_team = status
 
     def use_default(self):
@@ -529,7 +477,7 @@ class MyMission:
 
     def set_perception(self, op: str, img=25):
         self.perception = op
-        self.fraction_img = img/100
+        self.fraction_img = bf.smart_division(img, 100, 2)
 
     def set_alive(self, alive: list):
         self.alive_list = alive
@@ -569,4 +517,56 @@ class MyMission:
         else:
             self.prob_kill = prob_kill
         self.danger_constraints = constraints
+
+
+class MySearcher2(MySearcher):
+
+    """Child searcher class for milp_sim (risk)
+    Parent class: MySearcher from milp_mespp.classes"""
+
+    def __init__(self, searcher_id: int, v0: int, g, capture_range=0, zeta=None, my_seed=None):
+        # note: init overrides parent class init
+
+        # inherit parent class methods and properties
+        super().__init__(searcher_id, v0, g, capture_range, zeta, my_seed)
+
+        self.danger_levels = MyDanger.define_danger_levels()[0]
+
+        # initial thresholds
+        # danger threshold
+        self.kappa = 3
+        self.alpha = 0.95
+
+        # type of danger threshold (d - deterministic or p - probabilistic)
+        self.danger_perception = None
+
+        # store danger and beliefs values for vertices visited
+        self.path_kappa = dict()
+
+        # life status
+        self.alive = True
+        self.mva = False
+
+        # original id
+        self.id_0 = searcher_id
+
+    def set_kappa(self, new_kappa):
+        """Update kappa for searcher"""
+        self.kappa = new_kappa
+
+    def set_alpha(self, new_alpha):
+        self.alpha = new_alpha
+
+    def set_alive(self, status=True):
+        """Set life status: alive (true) or dead (false)"""
+        self.alive = status
+
+    def set_new_id(self, s_id):
+        self.id = s_id
+
+    def set_perception(self, op: str):
+        self.danger_perception = op
+
+    def set_mva(self, status=True):
+        self.mva = status
 

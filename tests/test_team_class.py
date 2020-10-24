@@ -1,7 +1,7 @@
 from milp_sim.risk.classes.danger import MyDanger
 from milp_sim.risk.classes.child_mespp import MyInputs2
-from milp_sim.risk.src import risk_parameters as rp
-from milp_sim.risk.src import plan_risk as plnr
+from milp_sim.risk.src import risk_param as rp
+from milp_sim.risk.src import risk_plan as plnr
 
 
 def get_specs():
@@ -47,10 +47,10 @@ def get_specs():
 def test_create_team():
     specs = get_specs()
 
-    team = rp.create_searchers(specs)
+    team = rp.create_team(specs)
 
     assert team.S == [1, 2]
-    assert team.m_input == 2
+    assert team.m == 2
     for s_id in team.S:
         s = team.searchers[s_id]
         assert s.capture_range == 0
@@ -70,7 +70,7 @@ def test_create_team():
 def test_searchers_update():
     specs = get_specs()
 
-    team = rp.create_searchers(specs)
+    team = rp.create_team(specs)
 
     assert team.kappa == [3, 4]
     assert team.kappa == [3, 4]
@@ -84,8 +84,8 @@ def test_searchers_update():
     s1 = team.searchers[1]
     s1.set_new_id(3)
 
-    assert team.searchers[1].config == 3
-    assert team.searchers_original[1].config == 1
+    assert team.searchers[1].id == 3
+    assert team.searchers_original[1].id == 1
     assert team.searchers[1].id_0 == 1
 
 
@@ -117,7 +117,7 @@ def test_decide_searchers_luck():
     eta_true = [1, 3, 3, 4, 5, 3, 4, 4, 1]
     specs.set_start_searchers(v0)
 
-    belief, team, solver_data, target, danger = plnr.init_wrapper(specs)
+    belief, team, solver_data, target, danger, mission = plnr.init_wrapper(specs)
 
     v_1, v_2 = 2, 3
     v_1_idx, v_2_idx = 1, 2
@@ -144,7 +144,7 @@ def test_decide_searchers_luck():
     # when all are killed -- related vars
     assert killed_ids == [1, 2]
     assert team.killed == [1, 2]
-    assert team.number_casualties == 2
+    assert team.casualties == 2
     assert team.killed_info[1] == [v_1, t, 3, 3]
     assert team.killed_info[2] == [v_2, t, 3, 4]
     assert list(team.searchers_killed.keys()) == [1, 2]
@@ -158,7 +158,7 @@ def test_decide_searchers_luck():
 
     # update team size
     team.update_size(len(team.searchers))
-    assert team.m_input == 0
+    assert team.m == 0
     assert team.S == []
 
     # update alive list
@@ -177,11 +177,13 @@ def test_decide_searchers_luck():
 
     # update thresholds
     team.update_kappa()
-    assert team.kappa_original == []
+    assert team.kappa == []
+    assert team.kappa_original == [3, 4]
 
     # update alpha
     team.update_alpha()
-    assert team.alpha_original == []
+    assert team.alpha == []
+    assert [0.95, 0.95] == team.alpha_original
 
 
 def test_decide_searchers_luck2():
@@ -191,7 +193,7 @@ def test_decide_searchers_luck2():
     eta_true = [1, 3, 3, 4, 5, 3, 4, 4, 1]
     specs.set_start_searchers(v0)
 
-    belief, team, solver_data, target, danger = plnr.init_wrapper(specs)
+    belief, team, solver_data, target, danger, mission = plnr.init_wrapper(specs)
 
     v_1, v_2 = v0[0], v0[1]
     v_1_idx, v_2_idx = v_1 - 1, v_2 - 1
@@ -219,7 +221,7 @@ def test_decide_searchers_luck2():
     # when all are killed -- related vars
     assert killed_ids == [1]
     assert team.killed == [1]
-    assert team.number_casualties == 1
+    assert team.casualties == 1
     assert team.killed_info[1] == [v_1, t, 4, 3]
     assert list(team.searchers_killed.keys()) == [1]
 
@@ -229,12 +231,12 @@ def test_decide_searchers_luck2():
     # update dict
     team.update_searchers_ids()
     assert len(team.searchers) == 1
-    assert team.searchers[1].config == 1
+    assert team.searchers[1].id == 1
     assert team.searchers[1].id_0 == 2
 
     # update team size
     team.update_size(len(team.searchers))
-    assert team.m_input == 1
+    assert team.m == 1
     assert team.S == [1]
 
     # update alive list
@@ -248,16 +250,18 @@ def test_decide_searchers_luck2():
     assert team.current_positions == {1: 3}
 
     # thresholds (prior to update)
-    assert team.kappa_original == [3, 4] == team.kappa_original
-    assert team.alpha_original == [0.95, 0.95] == team.alpha_original
+    assert team.kappa_original == [3, 4] == team.kappa
+    assert team.alpha_original == [0.95, 0.95] == team.alpha
 
     # update thresholds
     team.update_kappa()
-    assert team.kappa_original == [4]
+    assert team.kappa == [4]
+    assert team.kappa_original == [3, 4]
 
     # update alpha
     team.update_alpha()
-    assert team.alpha_original == [0.95]
+    assert team.alpha == [0.95]
+    assert team.alpha_original == [0.95, 0.95]
 
 
 
