@@ -293,13 +293,13 @@ def distributed_wrapper(g, horizon, searchers, b0, M_target, danger, gamma, time
             if md.SolCount == 0:
                 # problem was infeasible or other error (no solution found)
 
-                print('x---------------------------------x\nError, no solution found!')
+                print('x-------------------------------------------------x\nError, no solution found!')
                 v_s = start[s_id-1]
-                print('Computing path for searcher %d, kappa = %d, currently at vertex %d' % (s_id, searchers[s_id].kappa, v_s))
+                print('Computing path for s = %d, kappa = %d, at v = %d' % (s_id, searchers[s_id].kappa, v_s))
                 print('z_hat = %s' % str(danger.z_hat[v_s-1]))
                 print('eta_hat = %s' % str(danger.eta_hat[v_s-1]))
                 list_H = danger.compute_all_H(danger.eta_hat, danger.kappa)
-                print('H_hat = %s \nx---------------------------------x' % str(list_H[v_s-1]))
+                print('H_hat = %s \nx-------------------------------------------------x' % str(list_H[v_s-1]))
 
                 obj_fun, time_sol, gap, threads = -1, -1, -1, -1
                 # keep previous belief

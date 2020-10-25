@@ -2,7 +2,7 @@ from milp_sim.risk.classes.gazebo import MyGazeboSim
 from milp_sim.risk.src import base_fun as bf
 
 
-def test_common_point():
+def test_no_danger():
     # dummy parameters to test
     n = 46
     v_maybe = [8, 10, 12, 14, 17, 15]
@@ -51,17 +51,19 @@ def test_common_point():
     assert my_visited == [1, 2, 3, 4]
     assert len(my_belief_vector) == 47
 
+    del ms
+
+    # ------------
     # next time step
     next_v = bf.next_position(my_plan)
     visited = bf.smart_list_add(my_visited, next_v)
     t = 1
     pos_dummy = [next_v[0], -1, next_v[2]]
 
-    del ms
-
+    # time step 1
     ms = MyGazeboSim(pos_dummy, my_belief_vector, visited, t, simulation_op)
 
-    # original parameters
+    # original parameters (same as before)
     assert ms.v0 == [1]
     assert ms.kappa_original == [3, 4, 5]
     assert ms.alpha_original == [0.95, 0.95, 0.95]
@@ -75,7 +77,7 @@ def test_common_point():
     assert ms.time_step == 1
     assert ms.sim_op == simulation_op
 
-    # modified (but all searchers were alive prior to interaction
+    # modified (2/3 searchers were alive prior to interaction)
     assert ms.visited == visited
     assert ms.current_pos == [next_v[0], next_v[2]]
     assert ms.m == 2
@@ -87,6 +89,9 @@ def test_common_point():
     assert ms.abort is False
 
     my_plan, my_belief_vector, my_visited = ms.output_results()
+
+    assert my_plan[2] == [-1 for i in range(14 + 1)]
+    assert len(my_belief_vector) > 0
 
 
 

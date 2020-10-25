@@ -415,23 +415,24 @@ class MyGazeboSim:
         # specs only with new info
         specs = self.specs
 
+        # initialize time: actual sim time, t = 0, 1, .... T and time relative to the planning, t_idx = 0, 1, ... H
+        t = self.time_step
+
         # initialize classes
         belief, team, solver_data, target, danger, mission = plnr.init_wrapper(specs)
 
         # ---------------------------------------
         # Danger stuff
         # ---------------------------------------
-        # estimate danger
+        # estimate danger based on previous visited + current positions
         danger.estimate(self.visited)
 
-        if self.time_step > 0:
-
-            if danger.kill:
-                # compute prob kill, draw your luck and update searchers (if needed)
-                team.decide_searchers_luck(danger, self.time_step)
-                # update info in danger
-                danger.update_teamsize(len(team.alive))
-                danger.set_thresholds(team.kappa, team.alpha)
+        if t > 0 and danger.kill:
+            # compute prob kill, draw your luck and update searchers (if needed)
+            team.decide_searchers_luck(danger, t)
+            # update info in danger
+            danger.update_teamsize(len(team.alive))
+            danger.set_thresholds(team.kappa, team.alpha)
 
         # new [check if any searcher is alive]
         if len(team.alive) < 1:
@@ -446,11 +447,8 @@ class MyGazeboSim:
         # deadline, horizon, theta, solver_type, gamma = solver_data.unpack()
         M = target.unpack()
 
-        # initialize time: actual sim time, t = 0, 1, .... T and time relative to the planning, t_idx = 0, 1, ... H
-        t = 0
-
         # begin simulation loop
-        print('--\nTime step %d \n--' % self.time_step)
+        print('--\nTime step %d \n--' % t)
 
         # call for planner module
         sim_data = True
@@ -488,11 +486,11 @@ class MyGazeboSim:
         # -------------------------------------------------------------------
         # get things ready to output
         self.set_path_to_output(team.killed, path)
-        self.belief_vector = solver_data.retrieve_solver_belief(0, 1)
+        self.belief_vector = belief.new
 
         # printout for reference
         team.print_summary()
-        print('Vertices visited: %s' % str(self.visited))
+        print('Vertices visited: %s \n---' % str(self.visited))
 
 
 
