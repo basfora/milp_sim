@@ -221,9 +221,84 @@ def specs_335_prob():
     return specs
 
 
-def specs_new_true_point():
+def specs_NFF_both():
     specs = specs_basic()
-    specs.set_number_of_runs(500)
+    # danger files
+    # true danger file
+    true_file = 'gt_danger_NFF'
+    specs.set_danger_file(true_file, 'true')
+
+    # ----------------------------------------
+    # estimating danger with 5% images
+    # ----------------------------------------
+    per = 5
+    estimated_file = 'estimate_danger_both_des_NFF_freq_05'
+    # estimated danger file
+    specs.set_danger_file(estimated_file, 'hat')
+    specs.set_gt(True)
+    specs.set_all_descriptions(True)
+
+    # threshold of searchers
+    kappa = [3, 4, 5]
+    alpha = [0.6, 0.4, 0.4]
+    specs.set_threshold(kappa, 'kappa')
+    specs.set_threshold(alpha, 'alpha')
+
+    # danger perception
+    perception = 'point'
+    specs.set_danger_perception(perception)
+
+    # Apply prob kill (true/false)
+    # hybrid prob (op 3)
+    default_prob = 3
+    specs.use_kill(True, default_prob)
+    specs.set_mva_conservative(True)
+    specs.set_use_fov(True)
+    specs.set_true_estimate(False)
+
+    return specs
+
+
+def specs_NFF_both_est():
+    specs = specs_basic()
+    # danger files
+    # true danger file
+    true_file = 'estimate_danger_both_des_NFF_freq_100'
+    specs.set_danger_file(true_file, 'true')
+    # ----------------------------------------
+    # estimating danger with 5% images
+    # ----------------------------------------
+    per = 5
+    estimated_file = 'estimate_danger_both_des_NFF_freq_05'
+    # estimated danger file
+    specs.set_danger_file(estimated_file, 'hat')
+
+    specs.set_gt(False)
+    specs.set_all_descriptions(True)
+
+    # threshold of searchers
+    kappa = [3, 4, 5]
+    alpha = [0.6, 0.4, 0.4]
+    specs.set_threshold(kappa, 'kappa')
+    specs.set_threshold(alpha, 'alpha')
+
+    # danger perception
+    perception = 'point'
+    specs.set_danger_perception(perception)
+
+    # Apply prob kill (true/false)
+    # hybrid prob (op 3)
+    default_prob = 3
+    specs.use_kill(True, default_prob)
+    specs.set_mva_conservative(True)
+    specs.set_use_fov(True)
+    specs.set_true_estimate(False)
+
+    return specs
+
+
+def specs_NFF_fire():
+    specs = specs_basic()
     # danger files
     # true danger file
     true_file = 'gt_danger_NFF'
@@ -235,6 +310,47 @@ def specs_new_true_point():
     estimated_file = 'estimate_danger_fire_des_NFF_freq_05'
     # estimated danger file
     specs.set_danger_file(estimated_file, 'hat')
+
+    specs.set_gt(True)
+    specs.set_all_descriptions(False)
+
+    # threshold of searchers
+    kappa = [3, 4, 5]
+    alpha = [0.6, 0.4, 0.4]
+    specs.set_threshold(kappa, 'kappa')
+    specs.set_threshold(alpha, 'alpha')
+
+    # danger perception
+    perception = 'point'
+    specs.set_danger_perception(perception)
+
+    # Apply prob kill (true/false)
+    # hybrid prob (op 3)
+    default_prob = 3
+    specs.use_kill(True, default_prob)
+    specs.set_mva_conservative(True)
+    specs.set_use_fov(True)
+    specs.set_true_estimate(False)
+
+    return specs
+
+
+def specs_NFF_fire_est():
+    specs = specs_basic()
+    # danger files
+    # true danger file
+    true_file = 'estimate_danger_fire_des_NFF_freq_100'
+    specs.set_danger_file(true_file, 'true')
+    # ----------------------------------------
+    # estimating danger with 5% images
+    # ----------------------------------------
+    per = 5
+    estimated_file = 'estimate_danger_fire_des_NFF_freq_05'
+    # estimated danger file
+    specs.set_danger_file(estimated_file, 'hat')
+
+    specs.set_gt(False)
+    specs.set_all_descriptions(False)
 
     # threshold of searchers
     kappa = [3, 4, 5]
@@ -258,7 +374,7 @@ def specs_new_true_point():
 
 
 def specs_new_true_335():
-    specs = specs_new_true_point()
+    specs = specs_NFF_both()
 
     # threshold of searchers
     kappa = [3, 3, 5]

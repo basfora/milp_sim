@@ -27,15 +27,33 @@ if __name__ == "__main__":
     i = 1
     tic = get_timer()
 
-    """[1] New ground truth I5"""
-    specs = icra.specs_new_true_point()
+    """[1] NFF both description, human GT 
+    New ground truth PU-PT-HGT"""
+    specs = icra.specs_NFF_both()
     icra.num_sim(specs)
     # ---
     del specs
     i, tic = get_time(tic, i)
 
-    """[1] New ground truth I5 335"""
-    specs = icra.specs_new_true_335()
+    """[2] NFF both description, model GT (100% images)
+    New ground truth PU-PT-MGT"""
+    specs = icra.specs_NFF_both_est()
+    icra.num_sim(specs)
+    # ---
+    del specs
+    i, tic = get_time(tic, i)
+
+    """[3] NFF fire description only, human GT  
+    New ground truth PU-PT-HGT"""
+    specs = icra.specs_NFF_fire()
+    icra.num_sim(specs)
+    # ---
+    del specs
+    i, tic = get_time(tic, i)
+
+    """[2] NFF both description only, model GT (100% images)
+       New ground truth PU-PT-MGT"""
+    specs = icra.specs_NFF_fire_est()
     icra.num_sim(specs)
     # ---
     del specs

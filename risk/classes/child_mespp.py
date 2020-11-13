@@ -76,6 +76,9 @@ class MyInputs2(MyInputs):
         self.danger_hat = None
         self.percentage_img = None
 
+        self.human_gt = False
+        self.all_descriptions = False
+
         self.danger_levels, self.n_levels, self.level_label, self.level_color = MyDanger.define_danger_levels()
 
     def use_kill(self, status=True, op=3):
@@ -94,6 +97,12 @@ class MyInputs2(MyInputs):
             prob_kill = [0 for i in range(5)]
             self.set_prob_kill(prob_kill)
             self.prob_id = 'n'
+
+    def set_all_descriptions(self, status=False):
+        self.all_descriptions = status
+
+    def set_gt(self, status=False):
+        self.human_gt = status
 
     def use_danger_constraints(self, status=True):
         self.danger_constraints = status
@@ -233,6 +242,16 @@ class MyInputs2(MyInputs):
             my_code.append('HH')
         else:
             my_code.append('HT')
+
+        if self.human_gt is True:
+            my_code.append('_HGT')
+        else:
+            my_code.append('_MGT')
+
+        if self.all_descriptions:
+            my_code.append('desFC')
+        else:
+            my_code.append('desFF')
 
         if self.danger_constraints:
             my_code.append('_' + str(self.percentage_img).zfill(2))
