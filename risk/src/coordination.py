@@ -73,7 +73,7 @@ def my_script():
     g = specs_c.graph
 
     # create_folder
-    folder_name = 'coord_simple21'
+    folder_name = 'coord_simple23'
     folder_created = ext.folder_in_project('data/' + folder_name)
 
     # explicit coordination, get path
@@ -329,14 +329,14 @@ def set_settings(m=3):
     for s in range(1, m + 1):
         plot_settings[s] = rpf.CustomizePlot()
         plot_settings[s].set_marker('o')
-        plot_settings[s].set_marker_size(5)
+        # plot_settings[s].set_marker_size(5)
 
         # different color for each searcher
         plot_settings[s].set_l_color(my_colors[s-1])
 
         # thicker line
         plot_settings[s].set_l_width(5)
-        plot_settings[s].set_marker_size(8)
+        plot_settings[s].set_marker_size(15)
 
     text_settings = rpf.CustomizePlot()
 
@@ -551,6 +551,6 @@ def plot_coordination_simple(g, search_c: dict, search_d: dict, folder_name='coo
 
 if __name__ == "__main__":
     my_script()
-    # script_test()
+    #  script_test()
     # create_graph()
 

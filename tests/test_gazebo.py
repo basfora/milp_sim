@@ -11,7 +11,7 @@ def test_no_danger():
         b_dummy[vertex] = 1.0 / 6
     # current positions - all alive
     pos_dummy = [2, 3, 4]
-    visited_dummy = [1]
+    visited_dummy = [[1], [1], [1]]
     simulation_op = 4
     t = 0
 
@@ -30,7 +30,7 @@ def test_no_danger():
 
     # input parameters
     assert ms.input_pos == [2, 3, 4]
-    assert ms.b_0 == b_dummy
+    assert ms.bt_1 == b_dummy
     assert ms.time_step == t
     assert ms.sim_op == simulation_op
 
@@ -51,6 +51,9 @@ def test_no_danger():
     assert my_visited == [1, 2, 3, 4]
     assert len(my_belief_vector) == 47
 
+    # no effect on capture (too far)
+    assert b_dummy == my_belief_vector
+
     del ms
 
     # ------------
@@ -58,7 +61,8 @@ def test_no_danger():
     next_v = bf.next_position(my_plan)
     visited = bf.smart_list_add(my_visited, next_v)
     t = 1
-    pos_dummy = [next_v[0], -1, next_v[2]]
+    # searcher 2 got stuck
+    pos_dummy = [next_v[0], -2, next_v[2]]
 
     # time step 1
     ms = MyGazeboSim(pos_dummy, my_belief_vector, visited, t, simulation_op)
@@ -70,10 +74,10 @@ def test_no_danger():
     assert ms.S_original == [1, 2, 3]
     assert ms.m_original == 3
 
-    # input parameters
+    # result of input parameters
     assert ms.id_map == [(1, 1), (2, -1), (3, 2)]
     assert ms.input_pos == pos_dummy
-    assert ms.b_0 == my_belief_vector
+    assert ms.bt_1 == my_belief_vector
     assert ms.time_step == 1
     assert ms.sim_op == simulation_op
 
@@ -91,22 +95,71 @@ def test_no_danger():
     my_plan, my_belief_vector, my_visited = ms.output_results()
 
     assert my_plan[2] == [-1 for i in range(14 + 1)]
-    assert len(my_belief_vector) > 0
+    assert len(my_belief_vector) == 47
+
+    no_change = True
+    for el in ms.current_pos:
+        if el in v_maybe:
+            no_change = False
+
+    # no effect on capture (too far)
+    if no_change:
+        assert b_dummy == my_belief_vector
+
+    del ms
 
 
+def test_change_belief():
+    # dummy parameters to test
+    n = 46
+    v_maybe = [8, 10, 12, 14, 17, 15]
+    b_dummy = [0.0 for i in range(n + 1)]
+    for vertex in v_maybe:
+        b_dummy[vertex] = 1.0 / 6
+    visited_dummy = [[1], [1], [1]]
+    simulation_op = 4
+    t = 1
 
+    # searcher 2 got stuck
+    pos_dummy = [8, -2, 5]
 
+    # time step 1
+    ms = MyGazeboSim(pos_dummy, b_dummy, visited_dummy, t, simulation_op)
 
+    # original parameters (same as before)
+    assert ms.v0 == [1]
+    assert ms.kappa_original == [3, 4, 5]
+    assert ms.alpha_original == [0.95, 0.95, 0.95]
+    assert ms.S_original == [1, 2, 3]
+    assert ms.m_original == 3
 
+    # result of input parameters
+    assert ms.id_map == [(1, 1), (2, -1), (3, 2)]
+    assert ms.input_pos == pos_dummy
+    assert ms.bt_1 == b_dummy
+    assert ms.time_step == 1
+    assert ms.sim_op == simulation_op
 
+    # modified (2/3 searchers were alive prior to interaction)
+    assert ms.visitedt_1 == visited_dummy
+    assert ms.current_pos == [8, 5]
+    assert ms.m == 2
+    assert ms.kappa == [3, 5]
+    assert ms.alpha == [0.95, 0.95]
 
+    assert ms.alive == [1, 3]
+    assert ms.killed == [2]
+    assert ms.abort is False
 
+    my_plan, my_belief_vector, my_visited = ms.output_results()
 
+    assert my_plan[2] == [-1 for i in range(14 + 1)]
+    assert len(my_belief_vector) == 47
 
+    assert my_visited == [1, 8, 5]
 
-
-
-
+    assert my_belief_vector[0] == b_dummy[8]
+    assert my_belief_vector[8] == 0
 
 
 

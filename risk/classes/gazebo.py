@@ -3,6 +3,7 @@ from milp_sim.risk.classes.child_mespp import MyInputs2
 from milp_sim.risk.src import risk_plan as plnr
 from milp_mespp.core import plan_fun as pln
 from milp_mespp.core import extract_info as ext
+from milp_sim.risk.src import base_fun as bf
 import copy
 
 
@@ -20,19 +21,29 @@ class MyGazeboSim:
         # map between original and this call
         self.id_map = []
 
-        # inputs
+        # -----------------------------------------------
+        # inputs from Gazebo
+        # -----------------------------------------------
+
+        # position
         self.input_pos = input_pos
-        self.b_0 = b_0
+        # belief vector
+        self.bt_1 = b_0
         # vertices visited = [v, u, w,..]
-        self.visited = visited
+        self.visitedt_1 = visited
         self.time_step = time_step
         self.sim_op = sim_op
 
         # -----------------------------------------------
-        # for this run
+        # init empty vars
         # -----------------------------------------------
         self.m = None
         self.specs = None
+        self.visited = []
+
+        # to be updated
+        self.b_0 = []
+        self.dict_pos = {}
 
         # info used on this call
         self.kappa = None
@@ -43,14 +54,18 @@ class MyGazeboSim:
         # belief_vector = [b_c, b_1,....b_n]
         self.belief_vector = []
 
+        # -----------------------------------------------
+        # team info for this run
+        # -----------------------------------------------
+
         # translate inputs into team information
         self.alive, self.killed, self.current_pos = self.adjust_team()
 
-        # check if we need to abort
+        # check if we need to abort (true or false)
         self.abort = self.all_killed(self.alive)
 
         if not self.abort:
-            # specs - set up with new info (adjust team and thresholds)
+            # set up specs with new info
             self.set_up()
 
             # call planner
@@ -66,16 +81,18 @@ class MyGazeboSim:
     # UT - ok
     def adjust_team(self):
         """adjust lists based on current positions"""
+        # list of alive searchers
         alive = []
-        # positions of alive searchers
-        current_pos = []
+        # list of killed searchers (either danger or stuck)
         killed = []
+        # alive searchers current positions
+        current_pos = []
 
         for s in self.S_original:
             s_idx = ext.get_python_idx(s)
             v = self.input_pos[s_idx]
 
-            # if it already died, don't count with it
+            # if it already died (v = -1 or v = -2), don't count with it
             if v < 0:
                 killed.append(s)
                 self.id_map.append((s, -1))
@@ -85,6 +102,8 @@ class MyGazeboSim:
                 # new id
                 s_new = len(current_pos)
                 self.id_map.append((s, s_new))
+                # for new ids, assemble dict current_pos = {s: v}
+                self.dict_pos[s_new] = v
 
         return alive, killed, current_pos
 
@@ -138,7 +157,7 @@ class MyGazeboSim:
                 new_id = self.get_new_id(s_id)
 
                 if new_id < 0 or new_id in just_killed:
-                    # was killed before this iteration
+                    # was killed on or before this iteration
                     self.plan[s_id] = self.make_dummy_path()
                 else:
                     self.plan[s_id] = path_list[new_id]
@@ -169,7 +188,7 @@ class MyGazeboSim:
             return self.plan, self.belief_vector, self.visited
 
     # --------------------------------------------------------------------------------
-    # Set specs and current information
+    # Set specs with current info
     # --------------------------------------------------------------------------------
     def set_up(self):
         """Update information that came from Gazebo
@@ -181,12 +200,10 @@ class MyGazeboSim:
         self.m = m
         # basic specs
         self.specs_basic(m)
-        # common danger
-        self.specs_danger_common()
         # set start searchers from current position
         self.specs.set_start_searchers(self.current_pos)
-        # set belief calculated from previous time
-        self.specs.set_b0(self.b_0)
+        # set belief from previous time
+        self.specs.set_b0(self.bt_1)
         # make sure current positions are there
         self.update_visited(self.current_pos)
 
@@ -199,7 +216,6 @@ class MyGazeboSim:
     def set_desired_specs(self):
         # define extra specs depending on the simulation option desired
         if self.sim_op == 1:
-            # danger parameters
             self.specs_danger_common()
         elif self.sim_op == 2:
             self.specs_true_priori()
@@ -226,6 +242,7 @@ class MyGazeboSim:
     # Specs to run simulations
     # --------------------------------------------------------------------------------
 
+    """no danger basic specs"""
     def specs_basic(self, m=3):
 
         """Set specs that won't change"""
@@ -259,6 +276,12 @@ class MyGazeboSim:
         # set random seeds
         self.specs = specs
 
+        # threshold of searchers
+        kappa = [3, 4, 5]
+        alpha = [0.95, 0.95, 0.95]
+        self.specs.set_threshold(kappa, 'kappa')
+        self.specs.set_threshold(alpha, 'alpha')
+
         return specs
 
     """sim_op 1"""
@@ -280,7 +303,7 @@ class MyGazeboSim:
 
         # threshold of searchers
         kappa = [3, 4, 5]
-        alpha = [0.95, 0.95, 0.95]
+        alpha = [0.6, 0.4, 0.4]
         self.specs.set_threshold(kappa, 'kappa')
         self.specs.set_threshold(alpha, 'alpha')
 
@@ -300,7 +323,8 @@ class MyGazeboSim:
 
     """sim_op 2"""
     def specs_true_priori(self):
-
+        # common danger
+        self.specs_danger_common()
         # set perfect a priori knowledge
         self.specs.set_true_know(True)
         # and estimate
@@ -310,7 +334,8 @@ class MyGazeboSim:
 
     """sim_op 3"""
     def specs_no_constraints(self):
-
+        # common danger
+        self.specs_danger_common()
         self.specs.use_kill(True, 3)
         self.specs.use_danger_constraints(False)
 
@@ -325,6 +350,7 @@ class MyGazeboSim:
 
     """sim_op 5"""
     def specs_prob(self):
+        self.specs_danger_common()
         # threshold of searchers
         kappa = [3, 4, 5]
         alpha = [0.6, 0.4, 0.4]
@@ -345,6 +371,7 @@ class MyGazeboSim:
 
     """sim_op 7"""
     def specs_335(self):
+        self.specs_danger_common()
         kappa = [3, 3, 5]
         self.specs.set_threshold(kappa, 'kappa')
 
@@ -404,11 +431,26 @@ class MyGazeboSim:
     # --------------------------------------------------------------------------------
     def update_visited(self, current_pos: list):
 
+        for v in self.visitedt_1:
+            self.visited = self.smart_in(v, self.visited)
+
         for v in current_pos:
-            if v not in self.visited:
-                self.visited.append(v)
+            self.visited = self.smart_in(v, self.visited)
 
         return self.visited
+
+    @staticmethod
+    def smart_in(v, list_v):
+
+        if isinstance(v, list):
+            for u in v:
+                if u not in list_v:
+                    list_v.append(u)
+        else:
+            if v not in list_v:
+                list_v.append(v)
+
+        return list_v
 
     def hybrid_sim(self):
 
@@ -418,8 +460,17 @@ class MyGazeboSim:
         # initialize time: actual sim time, t = 0, 1, .... T and time relative to the planning, t_idx = 0, 1, ... H
         t = self.time_step
 
-        # initialize classes
+        # initialize classes, with t - 1 info
         belief, team, solver_data, target, danger, mission = plnr.init_wrapper(specs)
+
+        deadline, theta, n = solver_data.unpack_for_sim()
+        # current_pos = {s: v}
+        M = target.unpack()
+
+        # update belief
+        belief.update(team.searchers, self.dict_pos, M, n)
+
+        self.b_0 = belief.new
 
         # ---------------------------------------
         # Danger stuff
@@ -434,7 +485,7 @@ class MyGazeboSim:
             danger.update_teamsize(len(team.alive))
             danger.set_thresholds(team.kappa, team.alpha)
 
-        # new [check if any searcher is alive]
+        # need to abort? [check if any searcher is alive]
         if len(team.alive) < 1:
             mission.set_team_killed(True)
             self.set_path_to_output(team.killed)
@@ -442,10 +493,6 @@ class MyGazeboSim:
 
         # otherwise plan for next time step, considering just the searchers that are alive!
         # -------------------------------------------------------------------------------
-
-        deadline, theta, n = solver_data.unpack_for_sim()
-        # deadline, horizon, theta, solver_type, gamma = solver_data.unpack()
-        M = target.unpack()
 
         # begin simulation loop
         print('--\nTime step %d \n--' % t)
@@ -464,34 +511,12 @@ class MyGazeboSim:
         # get planned path as dict:  path [s, t] = v
         path = team.get_path()
 
-        # reset time-steps of planning
-        t_plan = 1
-        # _________________
-
-        # get dictionary of next positions for searchers, new_pos = {s: v}
-        path_next_t = pln.next_from_path(path, t_plan)
-
-        # evolve searcher positions
-        # also update visited
-        team.searchers_evolve(path_next_t)
-
-        # retrieve path_next_t (from searchers that are still alive)
-        path_next_t = team.retrieve_current_positions()
-        # --------------------------------------
-
-        # update belief
-        belief.update(team.searchers, path_next_t, M, n)
-
         # end of planning
         # -------------------------------------------------------------------
         # get things ready to output
         self.set_path_to_output(team.killed, path)
-        self.belief_vector = belief.new
+        self.belief_vector = copy.copy(self.b_0)
 
         # printout for reference
         team.print_summary()
         print('Vertices visited: %s \n---' % str(self.visited))
-
-
-
-

@@ -299,6 +299,26 @@ def smart_division(in_data, dem=100, dec=2):
     return result
 
 
+def smart_in(v, list_v):
+
+    is_in = False
+
+    if isinstance(list_v, list):
+
+        if isinstance(list_v[0], list):
+            for inner_list in list_v:
+                if v in inner_list:
+                    is_in = True
+                    break
+        else:
+            if v in list_v:
+                is_in = True
+            else:
+                is_in = False
+
+    return is_in
+
+
 def divide(num, dem, dec):
     return round(num / dem, dec)
 

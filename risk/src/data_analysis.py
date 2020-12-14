@@ -172,7 +172,8 @@ def plot_for_paper():
     #  [0, 1, 2, 3, 4]
 
     # fig 1
-    pickle_list = ['1013NCNKHT-n-0', '1012DCDKHT-h-PK',  '1015DCDKHT-PK-prob', '1012DCDKHT-h-05', '1015DCDKHHT-05-PT', '1015DCDKHT-05-prob', '1012NCDKHT-h-NA']
+    pickle_list = ['1111DCDKHT_HGTFC-PT-05', '1111DCDKHT_HGTFF-PT-05', '1111DCDKHT_MGTFF-PT-05', '1111DCDKHT_MGTFC-PT-05']
+    # ['1013NCNKHT-n-0', '1012DCDKHT-h-PK',  '1015DCDKHT-PK-prob', '1012DCDKHT-h-05', '1015DCDKHHT-05-PT', '1015DCDKHT-05-prob', '1012NCDKHT-h-NA']
 
     # FIG 2
     # pickle_list = ['1012DCDKHT-h-05', ]
@@ -183,11 +184,16 @@ def plot_for_paper():
 
 
 def compile_data():
+    """Input name of folder in saved_data and instance base"""
+    # folder_names = ['1015DCDKHHT-05-PT'] # ['1015DCDKHT-PK-prob', '1015DCDKHT-05-prob']
+    # instance_base = ['DCDKHT_05hpoint_G46Vss2_1015_']  #  ['DCDKHT_100hprob_PK_G46Vss2_1015_', 'DCDKHT_05hprob_G46Vss2_1015_']
 
     rp = RiskPlot()
 
-    folder_names = ['1015DCDKHHT-05-PT'] # ['1015DCDKHT-PK-prob', '1015DCDKHT-05-prob']
-    instance_base = ['DCDKHT_05hpoint_G46Vss2_1015_']  #  ['DCDKHT_100hprob_PK_G46Vss2_1015_', 'DCDKHT_05hprob_G46Vss2_1015_']
+    folder_names = ['1111DCDKHT_HGTFC-PT-05', '1111DCDKHT_MGTFC-PT-05', '1111DCDKHT_HGTFF-PT-05',
+                    '1111DCDKHT_MGTFF-PT-05']
+    instance_base = ['DCDKHT_HGTdesFC_05hpoint_G46Vss2_1110_', 'DCDKHT_MGTdesFC_05hpoint_G46Vss2_1110_',
+                     'DCDKHT_HGTdesFF_05hpoint_G46Vss2_1111_', 'DCDKHT_MGTdesFF_05hpoint_G46Vss2_1111_']
 
     for i in range(len(folder_names)):
         rp.retrieve_data(folder_names[i], instance_base[i])
@@ -195,15 +201,8 @@ def compile_data():
 
 if __name__ == '__main__':
 
-    # plot_for_paper()
+    plot_for_paper()
     # compile_data()
 
-    sim1 = []
-    gazebo_path = MyDanger.get_folder_path('data_saved/gazebo/run1/sim1/1015_000')
 
-    f_name = '/output.pickle'
-
-    sim1.append(gazebo_path + f_name)
-
-    data = bf.load_pickle_file(sim1[0])
 

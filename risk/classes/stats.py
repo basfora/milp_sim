@@ -33,6 +33,11 @@ class MyStats:
         self.config = folder_name.split('-')[0][4:]
         self.img_per = folder_name.split('-')[-1]
 
+        try:
+            a = int(self.img_per)
+        except:
+            self.img_per = folder_name.split('-')[-2]
+
         # self.img_per = self.get_img_per(img_per)
         self.print_name(folder_name, '--\nStats for')
         self.print_name(self.img_per, 'Percentage images: ', False)
@@ -76,9 +81,17 @@ class MyStats:
         self.horizon = 0
         self.deadline = 0
         self.timeout = 0
-        self.env = 'NFC'
         # target parameter
         self.target_motion = 'static'
+
+        # ground truth
+        self.human_truth = None
+        self.env = None
+        self.des = None
+        self.perception = None
+        self.true_priori = None
+        self.true_estimate = None
+        self.est = None
 
         # --------------------
         # Actual Stats
@@ -251,8 +264,6 @@ class MyStats:
                 print('Trouble collecting instance %d' % n_turn)
                 # go to next
                 continue
-
-                # save prob kill (equal to all instances)
 
             # create an instance obj
             instance = MyInstance(n_turn, data)
@@ -429,16 +440,52 @@ class MyStats:
         self.prob_kill = copy.deepcopy(ins.danger.prob_kill)
         self.danger_kill = ins.danger.kill
         self.danger_constraints = ins.danger.constraints
+        self.perception = ins.specs.perception
+
+        self.true_priori = ins.specs.true_priori
+        self.true_estimate = ins.specs.true_estimate
+
+        # ground truth
+        if '_freq_' in ins.specs.danger_true:
+            self.human_truth = False
+        elif 'gt_danger_NFF' in ins.specs.danger_true:
+            self.human_truth = True
+
+        est = ins.specs.danger_hat
+
+        if 'NCF' in est:
+            self.env = 'NCF'
+        elif 'NFF' in est:
+            self.env = 'NFF'
+
+        if '_both_des_' in est:
+            self.des = 'FC'
+        elif '_fire_des_' in est:
+            self.des = 'FF'
 
         # sanity check
+
+        # danger kill
         if 'DK' in self.config:
             assert self.danger_kill is True
         elif 'NK' in self.config:
             assert self.danger_kill is False
+
+        # danger constraints
         if 'DC' in self.config:
             assert self.danger_constraints is True
         elif 'NC' in self.config:
             assert self.danger_constraints is False
+
+        if 'MGT' in self.config:
+            assert self.human_truth is False
+        elif 'HGT' in self.config:
+            assert self.human_truth is True
+
+        if 'FF' in self.config:
+            assert self.des == 'FF'
+        elif 'FC' in self.config:
+            assert self.des == 'FC'
 
         # team parameters
         self.m = copy.deepcopy(ins.team.size_original)
@@ -448,9 +495,18 @@ class MyStats:
         self.horizon = ins.solver_data.horizon[0]
         self.deadline = ins.solver_data.deadline
         self.timeout = ins.solver_data.timeout
-        self.env = 'NFC'
         # target parameter
         self.target_motion = 'static'
+
+        self.print_common_param()
+
+    def print_common_param(self):
+        print('Simulation Parameters:')
+
+        print('P(loss|danger) = %s, Danger constraints = %s' % (str(self.danger_kill), str(self.danger_constraints)))
+        print('Constraints type = %s, kappa = %s' % (self.perception, str(self.kappa)))
+        print('True priori: %s, Estimation: %s, Human Ground Truth: %s' % (str(self.true_priori), self.img_per, str(self.human_truth)))
+        print('Env: %s, Descriptions: %s' % (self.env, self.des))
 
     """Save data for storage"""
     def save_all_data(self):

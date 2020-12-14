@@ -4,13 +4,14 @@ from milp_sim.risk.classes.danger import MyDanger
 from milp_sim.risk.src import base_fun as bf
 from milp_sim.risk.src.r_plotfun import CustomizePlot
 import matplotlib.lines as mlines
+from milp_sim.risk.src import r_plotfun as rpf
+from milp_sim.scenes import make_graph as mg, files_fun as ff
 from milp_sim.risk.src import plots_funs as pfs
 import copy
 import os
 #from scipy.stats import sem
 import scipy.stats
 import numpy as np
-
 
 
 class RiskPlot:
@@ -51,6 +52,14 @@ class RiskPlot:
         self.stats_list = [self.outcomes, self.casualties, self.times]
 
         self.N = [i for i in range(1, self.n_runs + 1)]
+
+        # ----------
+        self.danger_files = None
+        self.eta_values = dict()
+        self.z_values = dict()
+        self.n = 46
+        self.graph_vertices = 'School_Image_VGraph'
+        self.graph_edges = 'School_Image_EGraph'
 
     def clear_list(self):
         self.stats_list = []
@@ -327,11 +336,11 @@ class RiskPlot:
                 my_handle.append(mlines.Line2D([], [], linestyle='None', marker=my_markers[j], markersize=7, color=colors[j][0], label=self.lgd[j]))
 
         if plot_n == 1:
-            my_loc = 'center left'
+            my_loc = 'upper right'
         elif plot_n == 0:
-            my_loc = 'center left'
+            my_loc = 'upper right'
         else:
-            my_loc = 'center left'
+            my_loc = 'upper left' #'center left'
 
         plt.legend(handles=my_handle, frameon=False, loc=my_loc, fontsize=16)
 
@@ -341,7 +350,7 @@ class RiskPlot:
         fig.savefig(fig_name, bbox_inches='tight')
 
         # show me
-        plt.show()
+        # plt.show()
 
     # --------------------------------------
     # Computation of stats
@@ -499,7 +508,7 @@ class RiskPlot:
 
         self.y_label = ['Missions [ \% ]', 'Missions [ \% ]', 'Average Time [ steps ]']
 
-        self.fig_name = ['mission_outcomes5', 'casualties5', 'times5']
+        self.fig_name = ['mission_outcomes7', 'casualties7', 'times7']
 
     def set_config_names(self):
 
@@ -521,13 +530,8 @@ class RiskPlot:
 
     def set_x_ticks(self):
 
-        ND = 'No danger baseline'
-        PK = 'A priori: true values'
-        I100 = 'A priori: uniform, estimation: 100\% images'
-        I5 = 'A priori: uniform, estimation: 5\% images'
-        NC = 'No danger constraints'
-        # 'I100',
-        self.x_list = ['ND', 'PK-PT', 'PK-PB', 'PU-PT', '335','PU-PB', 'NC']
+        # self.x_list = ['ND', 'PK-PT', 'PK-PB', 'PU-PT', '335','PU-PB', 'NC']
+        self.x_list = ['H-FC', 'H-FF', 'I-FF', 'I-FC']
         # self.x_list = ['I5-PT-345', 'I5-PT-335']
 
     # --------------------------------------
@@ -621,7 +625,114 @@ class RiskPlot:
     def show_me():
         plt.show()
 
-    # @staticmethod
-    # def draw_errorbar(xvalues, yvalues, y_err, ax, l_style='bo-', lgd=None):
-    #     ax.errorbar(xvalues, yvalues, yerr=y_err, fmt=l_style, label=lgd, capsize=2)
-    #     ax.grid(b=True, which='both')
+    # --------------------------------------------
+    # plot danger graph
+    # -------------------------------------------
+
+    def set_danger_files(self, list_files=None):
+        """Name of source files for danger data"""
+
+        if list_files is None:
+            list_files = ['danger_map_NCF_freq_05', 'danger_map_NCF_freq_100']
+
+        self.danger_files = list_files
+        self.load_eta_values()
+        self.set_z_values()
+        # self.print_danger_data()
+
+    def set_z_values(self):
+
+        for k in self.eta_values.keys():
+            eta = self.eta_values.get(k)
+            z = MyDanger.all_z_from_eta(eta, 1)
+            self.z_values[k] = z
+
+    def load_eta_values(self):
+        """load the actual values from file"""
+
+        k = 0
+        for f_name in self.danger_files:
+            self.eta_values[k] = bf.is_list(MyDanger.load_danger_data(f_name))
+            k += 1
+
+    def print_danger_data(self):
+
+        for v_idx in range(self.n):
+            print_str = 'v = ' + str(v_idx + 1)
+            for k in self.z_values.keys():
+                z = self.z_values.get(k)[v_idx]
+                my_str = ', z_' + str(k) + '= ' + str(z)
+                print_str += my_str
+            print(print_str)
+
+    def plot_graph_school(self):
+
+        bloat = True
+        per_list = [per for per in self.z_values.keys()]
+        n_sub = len(per_list)
+
+        for i in range(n_sub):
+
+            # if i == 0:
+            #     continue
+
+            fig = plt.figure(figsize=(6, 4), dpi=200)
+
+            # fig_1, ax_arr = plt.subplots(1, 1, figsize=(9, 5), dpi=150)
+
+            mg.plot_ss2(bloat, True, 'dimgray')
+
+            mg.plot_graph(bloat, True, True)
+
+            V = ff.get_info(self.graph_vertices, 'V')
+
+            danger = True
+
+            if danger:
+
+                colors = self.get_vertices_color(per_list[i])
+                for v in V:
+                    vidx = V.index(v)
+                    my_color = colors[vidx]
+
+                    self.plot_points([v], my_color, 'o', 6)
+
+            xy = [0.125, 0.15]
+            rpf.my_hazard_labels(fig, xy, 14)
+
+            plt.xlim(right=72, left=-7)  # adjust the right leaving left unchanged
+            plt.ylim(bottom=-0.5, top=59)
+
+            plt.axis('off')
+
+            my_str = 'School Scenario' #'Danger Graph, ' + str(per_list[i]) + '\% images'
+            # plt.title(my_str, fontsize=20, weight='heavy')
+
+            # save fig
+            fig_path = MyDanger.get_folder_path('figs')
+            fig_name = fig_path + '/ss2' + '.pdf'
+            fig.savefig(fig_name, bbox_inches='tight')
+
+            fig_name = 'danger_graph_' + str(per_list[i])
+            mg.save_plot(fig_name, 'figs', '.pdf')
+
+            # plt.show()
+
+    def get_vertices_color(self, per=100):
+        my_color = []
+        for v_idx in range(self.n):
+            z_v = self.z_values[per][v_idx]
+            color_v = rpf.match_level_color(z_v)
+            my_color.append(color_v)
+
+        return my_color
+
+
+if __name__ == "__main__":
+
+    risk_data = RiskPlot()
+    list_danger = ['gt_danger_NFF', 'estimate_danger_both_des_NFF_freq_100', 'estimate_danger_fire_des_NFF_freq_100',
+                   'estimate_danger_both_des_NFF_freq_05', 'estimate_danger_fire_des_NFF_freq_05']
+    risk_data.set_danger_files(list_danger)
+    risk_data.print_danger_data()
+    risk_data.plot_graph_school()
