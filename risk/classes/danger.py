@@ -151,7 +151,7 @@ class MyDanger:
     def set_z_priori_option(self, op=1):
         """Choose how to compute z:
         op 1: get maximum prob, if tie pick the one closest to the middle
-        op 2: get maximum prob, if tie pick conservative (max value)
+        op 2: get maximum prob, if tie pick max value
         op 3: get max prob, if tie pick min threshold for team (break ties)
         op 4: get max prob, if tie pick min threshold + 1"""
 
@@ -882,7 +882,7 @@ class MyDanger:
             # get maximum prob, if tie pick the one closest to the middle
             z = MyDanger.pick_weighted_avg_z(z_star, eta_v)
         elif op == 2:
-            # get maximum prob, if tie pick conservative (max value)
+            # get maximum prob, if tie pick max value
             z = MyDanger.pick_conservative_z(z_star)
         elif op == 3:
             # get max prob, if tie pick min threshold for team (break ties)
@@ -972,9 +972,10 @@ class MyDanger:
         else:
             k_min = kappa
 
-        z = 1
+        z = z_list[0]
         for my_z in z_list:
             z = my_z
+            # minimum value that is above k mva
             if my_z > k_min:
                 break
 
@@ -1284,6 +1285,23 @@ class MyDanger:
                   % (z_true, z_25, z_50, z_75))
 
     @staticmethod
+    def print_danger_levels(f_name):
+
+        data = MyDanger.load_danger_data(f_name)
+
+        op = 1
+
+        for v in data.keys():
+            eta = data.get(v)
+
+            z = MyDanger.z_from_eta(eta, op)
+
+            print('Vertex %d:\nDistribution:  eta = %s'
+                  % (v, str(eta)))
+            print('Point Estimate, z_true = %d \n ---'
+                  % (z))
+
+    @staticmethod
     def print_fake_data():
         f_name = 'fake_01_100'
         f_name10 = 'fake_01_10'
@@ -1328,8 +1346,8 @@ class MyDanger:
             print('z = %d' % z)
 
 
-
-
+if __name__ == "__main__":
+    MyDanger.print_danger_levels('danger_map_NCF_freq_05')
 
 
 

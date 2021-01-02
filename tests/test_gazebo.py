@@ -20,7 +20,7 @@ def test_no_danger():
     # original parameters
     assert ms.v0 == [1]
     assert ms.kappa_original == [3, 4, 5]
-    assert ms.alpha_original == [0.95, 0.95, 0.95]
+    assert ms.alpha_original == [0.6, 0.4, 0.4]
     assert ms.S_original == [1, 2, 3]
     assert ms.m_original == 3
     assert ms.id_map == [(1, 1), (2, 2), (3, 3)]
@@ -38,7 +38,7 @@ def test_no_danger():
     assert ms.visited == [1, 2, 3, 4]
     assert ms.m == 3
     assert ms.kappa == [3, 4, 5]
-    assert ms.alpha == [0.95, 0.95, 0.95]
+    assert ms.alpha == [0.6, 0.4, 0.4]
     assert ms.current_pos == [2, 3, 4]
 
     # since it's t = 0, no kill
@@ -70,7 +70,7 @@ def test_no_danger():
     # original parameters (same as before)
     assert ms.v0 == [1]
     assert ms.kappa_original == [3, 4, 5]
-    assert ms.alpha_original == [0.95, 0.95, 0.95]
+    assert ms.alpha_original == [0.6, 0.4, 0.4]
     assert ms.S_original == [1, 2, 3]
     assert ms.m_original == 3
 
@@ -86,7 +86,7 @@ def test_no_danger():
     assert ms.current_pos == [next_v[0], next_v[2]]
     assert ms.m == 2
     assert ms.kappa == [3, 5]
-    assert ms.alpha == [0.95, 0.95]
+    assert ms.alpha == [0.6, 0.4]
 
     assert ms.alive == [1, 3]
     assert ms.killed == [2]
@@ -129,7 +129,7 @@ def test_change_belief():
     # original parameters (same as before)
     assert ms.v0 == [1]
     assert ms.kappa_original == [3, 4, 5]
-    assert ms.alpha_original == [0.95, 0.95, 0.95]
+    assert ms.alpha_original == [0.6, 0.4, 0.4]
     assert ms.S_original == [1, 2, 3]
     assert ms.m_original == 3
 
@@ -145,7 +145,7 @@ def test_change_belief():
     assert ms.current_pos == [8, 5]
     assert ms.m == 2
     assert ms.kappa == [3, 5]
-    assert ms.alpha == [0.95, 0.95]
+    assert ms.alpha == [0.6, 0.4]
 
     assert ms.alive == [1, 3]
     assert ms.killed == [2]

@@ -2,7 +2,7 @@
 from milp_sim.risk.classes.child_mespp import MyInputs2
 from milp_sim.risk.src import risk_plan as plnr
 from milp_mespp.core import extract_info as ext
-from milp_sim.risk.exp_src import ral_default as ral
+from milp_sim.risk.src import base_fun as bf
 import copy
 
 
@@ -10,9 +10,10 @@ class MyGazeboSim:
 
     def __init__(self, input_pos: list, b_0: list, visited: list, time_step: int, sim_op=1):
 
-        # original parameters (tailored to ral)
+        # original parameters
         self.v0 = [1]
-        self.kappa_original, self.alpha_original = ral.default_thresholds()
+        self.kappa_original = None
+        self.alpha_original = None
         self.m_original = 3
         self.S_original = [1, 2, 3]
 
@@ -72,6 +73,9 @@ class MyGazeboSim:
     # --------------------------------------------------------------------------------
     # Adjusting team sizes
     # --------------------------------------------------------------------------------
+    def original_thresholds(self):
+        self.kappa_original = copy.copy(self.specs.kappa)
+        self.alpha_original = copy.copy(self.specs.alpha)
 
     # UT - ok
     def adjust_team(self):
@@ -104,6 +108,9 @@ class MyGazeboSim:
 
     def adjust_threshold(self):
         """"List of threshold of alive searchers"""
+
+        # save original thresholds (from specs)
+        self.original_thresholds()
 
         kappa = []
         alpha = []
@@ -190,19 +197,12 @@ class MyGazeboSim:
         # set team size
         m = len(self.current_pos)
         self.m = m
-
         # basic specs
-        specs = ral.specs_basic()
-        specs.set_size_team(m)
-        specs.set_number_of_runs(1)
-        self.specs = specs
-
+        self.specs_basic(m)
         # set start searchers from current position
         self.specs.set_start_searchers(self.current_pos)
-
         # set belief from previous time
         self.specs.set_b0(self.bt_1)
-
         # make sure current positions are there
         self.update_visited(self.current_pos)
 
@@ -215,30 +215,215 @@ class MyGazeboSim:
     def set_desired_specs(self):
         # define extra specs depending on the simulation option desired
         if self.sim_op == 1:
-            my_specs = ral.pt_pu_345(self.specs)
+            self.specs_danger_common()
         elif self.sim_op == 2:
-            my_specs = ral.pt_pk_345(self.specs)
+            self.specs_true_priori()
         elif self.sim_op == 3:
-            my_specs = ral.specs_no_constraints(self.specs)
+            self.specs_no_constraints()
         elif self.sim_op == 4:
-            my_specs = ral.specs_no_danger(self.specs)
+            self.specs_no_danger()
         elif self.sim_op == 5:
-            my_specs = ral.pb_pu_345(self.specs)
+            self.specs_prob()
         elif self.sim_op == 6:
-            my_specs = ral.pb_pk_345(self.specs)
+            self.specs_true_priori_prob()
         elif self.sim_op == 7:
-            my_specs = ral.pt_pu_335(self.specs)
+            self.specs_335()
         elif self.sim_op == 8:
-            my_specs = ral.pt_pu_333(self.specs)
+            self.specs_335_prob()
         elif self.sim_op == 9:
-            my_specs = ral.pb_pu_335(self.specs)
+            self.specs_new_gt_point()
         elif self.sim_op == 10:
-            my_specs = ral.pb_pu_333(self.specs)
+            self.specs_new_gt_335()
         else:
-            my_specs = None
             exit(print('Please provide a valid sim option. Ending simulation.'))
 
-        self.specs = my_specs
+    # --------------------------------------------------------------------------------
+    # Specs to run simulations
+    # --------------------------------------------------------------------------------
+
+    """no danger basic specs"""
+    def specs_basic(self, m=3):
+
+        """Set specs that won't change"""
+        # initialize default inputs
+        specs = MyInputs2()
+        # ------------------------
+        # graph number -- SS-2: 8
+        specs.set_graph(8)
+        # solver parameter: central x distributed
+        specs.set_solver_type('distributed')
+        # solver timeout (in seconds)
+        specs.set_timeout(10)
+        # ------------------------
+        # time stuff: deadline mission (tau), planning horizon (h), re-plan frequency (theta)
+        specs.set_horizon(14)
+        specs.set_deadline(100)
+        specs.set_theta(1)
+        # ------------------------
+        # searchers' detection: capture range and false negatives
+        specs.set_size_team(m)
+        specs.set_capture_range(0)
+        specs.set_zeta(None)
+        # ------------------------
+        # target motion
+        specs.set_target_motion('static')
+        specs.set_start_target_vertex(None)
+        # ------------------------
+        # pseudorandom
+        # repetitions for each configuration
+        specs.set_number_of_runs(1)
+
+        self.specs = specs
+
+        # threshold of searchers
+        kappa = [3, 4, 5]
+        alpha = [0.95, 0.95, 0.95]
+        self.specs.set_threshold(kappa, 'kappa')
+        self.specs.set_threshold(alpha, 'alpha')
+
+        return specs
+
+    """sim_op 1"""
+    def specs_danger_common(self):
+        """Set common danger specs
+        """
+        # danger files
+        base_name = 'danger_map_NCF_freq_'
+        # true danger file
+        true_file = base_name + '100'
+        self.specs.set_danger_file(true_file, 'true')
+        # ----------------------------------------
+        # estimating danger with 5% images
+        # ----------------------------------------
+        per = 5
+        estimated_file = base_name + str(per).zfill(2)
+        # estimated danger file
+        self.specs.set_danger_file(estimated_file, 'hat')
+
+        # threshold of searchers
+        kappa = [3, 4, 5]
+        alpha = [0.6, 0.4, 0.4]
+        self.specs.set_threshold(kappa, 'kappa')
+        self.specs.set_threshold(alpha, 'alpha')
+
+        # danger perception
+        perception = 'point'
+        self.specs.set_danger_perception(perception)
+
+        # Apply prob kill (true/false)
+        # hybrid prob (op 3)
+        default_prob = 3
+        self.specs.use_kill(True, default_prob)
+        self.specs.set_mva_conservative(True)
+        self.specs.set_use_fov(True)
+        self.specs.set_true_estimate(False)
+
+        return self.specs
+
+    """sim_op 2"""
+    def specs_true_priori(self):
+        # common danger
+        self.specs_danger_common()
+        # set perfect a priori knowledge
+        self.specs.set_true_know(True)
+        # and estimate
+        self.specs.set_true_estimate(True)
+
+        return self.specs
+
+    """sim_op 3"""
+    def specs_no_constraints(self):
+        # common danger
+        self.specs_danger_common()
+        self.specs.use_kill(True, 3)
+        self.specs.use_danger_constraints(False)
+
+        return self.specs
+
+    """sim_op 4"""
+    def specs_no_danger(self):
+        self.specs.use_kill(False)
+        self.specs.use_danger_constraints(False)
+
+        return self.specs
+
+    """sim_op 5"""
+    def specs_prob(self):
+        self.specs_danger_common()
+        # threshold of searchers
+        kappa = [3, 4, 5]
+        alpha = [0.6, 0.4, 0.4]
+        self.specs.set_threshold(kappa, 'kappa')
+        self.specs.set_threshold(alpha, 'alpha')
+
+        # danger perception
+        perception = 'prob'
+        self.specs.set_danger_perception(perception)
+
+    """sim_op 6"""
+    def specs_true_priori_prob(self):
+        self.specs_prob()
+        # set perfect a priori knowledge
+        self.specs.set_true_know(True)
+        # and estimate
+        self.specs.set_true_estimate(True)
+
+    """sim_op 7"""
+    def specs_335(self):
+        self.specs_danger_common()
+        kappa = [3, 3, 5]
+        self.specs.set_threshold(kappa, 'kappa')
+
+    """sim_op 8"""
+    def specs_335_prob(self):
+        self.specs_prob()
+
+        kappa = [3, 3, 5]
+        alpha = [0.6, 0.6, 0.4]
+        self.specs.set_threshold(kappa, 'kappa')
+        self.specs.set_threshold(alpha, 'alpha')
+
+    """sim_op 9"""
+    def specs_new_gt_point(self):
+        # danger files
+        # true danger file
+        true_file = 'gt_danger_NFF'
+        self.specs.set_danger_file(true_file, 'true')
+        # ----------------------------------------
+        # estimating danger with 5% images
+        # ----------------------------------------
+        # per = 5
+        estimated_file = 'estimate_danger_fire_des_NFF_freq_05'
+        # estimated danger file
+        self.specs.set_danger_file(estimated_file, 'hat')
+
+        # threshold of searchers
+        kappa = [3, 4, 5]
+        alpha = [0.6, 0.4, 0.4]
+        self.specs.set_threshold(kappa, 'kappa')
+        self.specs.set_threshold(alpha, 'alpha')
+
+        # danger perception
+        perception = 'point'
+        self.specs.set_danger_perception(perception)
+
+        # Apply prob kill (true/false)
+        # hybrid prob (op 3)
+        default_prob = 3
+        self.specs.use_kill(True, default_prob)
+        self.specs.set_mva_conservative(True)
+        self.specs.set_use_fov(True)
+        self.specs.set_true_estimate(False)
+
+    """sim_op 10"""
+    def specs_new_gt_335(self):
+        self.specs_new_gt_point()
+        # danger perception
+        # threshold of searchers
+        kappa = [3, 3, 5]
+        alpha = [0.6, 0.6, 0.4]
+        self.specs.set_threshold(kappa, 'kappa')
+        self.specs.set_threshold(alpha, 'alpha')
 
     # --------------------------------------------------------------------------------
     # Simulate and save
