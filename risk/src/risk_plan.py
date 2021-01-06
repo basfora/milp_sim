@@ -182,8 +182,11 @@ def planner_module(belief, target, team, solver_data, danger, t=0, printout=True
     path_list = ext.path_as_list(path_dict)
 
     if folder_path is not None:
-        belief_nonzero, plan_eval, danger_ok, danger_error = check_plan(team, danger, solver_data, path_list)
-        bf.save_log_file(path_list, belief_nonzero, plan_eval, danger_ok, danger_error, t, folder_path)
+        try:
+            belief_nonzero, plan_eval, danger_ok, danger_error = check_plan(team, danger, solver_data, path_list)
+            bf.save_log_file(path_list, belief_nonzero, plan_eval, danger_ok, danger_error, t, folder_path)
+        except:
+            pass
 
     if printout:
         pln.print_path_list(path_list)
@@ -210,8 +213,6 @@ def check_plan(team, danger, solver_data, path_list: dict):
     # sub graphs for each searcher danger level
     sub_graphs = []
     sub_Vs = []
-    # thresholds
-    kappa = [team.kappa_original[s-1] for s in team.alive]
 
     # ----
     # danger-aware
@@ -224,13 +225,12 @@ def check_plan(team, danger, solver_data, path_list: dict):
 
         s = team.searchers[s_id]
 
-        # original id
+        # original id (for log file only)
         s_id0 = s.id_0
 
-        # current idx
+        # current idx (only alive)
         s_idx = ext.get_python_idx(s_id)
-        s_kappa = kappa[s_idx]
-
+        s_kappa = team.kappa[s_idx]
         plan_s = path_list[s_id]
 
         if danger.kill and danger.constraints:
@@ -239,6 +239,7 @@ def check_plan(team, danger, solver_data, path_list: dict):
         else:
             sub_g, sub_vertices = g, V
 
+        # only of alive searchers
         sub_graphs.append(sub_g)
         sub_Vs.append(sub_vertices)
 
@@ -246,15 +247,17 @@ def check_plan(team, danger, solver_data, path_list: dict):
             if v not in vs_to_visit:
                 vs_to_visit.append(v)
 
+            if t == 0:
+                continue
+
             if danger.kill and danger.constraints:
                 # get danger info for vertex v
-                zhat_v = danger.get_zhat(v)
+                zhat_v = z_hat[v-1]
 
                 # PT estimate
                 if danger.perception == danger.options[0] and zhat_v > s_kappa:
-                    danger_error = 'Error in planned path! s = ' + str(s_id0) + ' k = ' + str(
-                        s_kappa) + ' || v = ' + str(v) + \
-                                   ' z_hat = ' + str(zhat_v)
+                    danger_error = 'Error in planned path! s = ' + str(s_id0) + ' k = ' + str(s_kappa) + \
+                                   ' || v = ' + str(v) + ' z_hat = ' + str(zhat_v)
                     print(danger_error)
                     danger_ok = False
 
@@ -303,7 +306,7 @@ def check_wrt_belief(solver_data, team, path_list, sub_graphs, sub_Vs, vs_to_vis
                 continue
 
             s_id += 1
-            too_dangerous, not_connected, too_far = False, False, False,
+            too_dangerous, not_connected, too_far, current_pos = False, False, False, False
             s_idx = ext.get_python_idx(s_id)
             # sub graph
             sub_g = sub_graphs[s_idx]
@@ -318,7 +321,13 @@ def check_wrt_belief(solver_data, team, path_list, sub_graphs, sub_Vs, vs_to_vis
 
             # if it's in the graph, it might be unconnected or too far from current searcher position
             else:
-                connection, distance = rp.connected(sub_g, s_pos, vb)
+
+                if s_pos not in allowed_vertices:
+                    connection, distance = rp.connected(solver_data.g, s_pos, vb)
+                    current_pos = True
+                else:
+                    connection, distance = rp.connected(sub_g, s_pos, vb)
+
                 # is connected
                 if connection:
                     # (4) but too far
@@ -335,6 +344,8 @@ def check_wrt_belief(solver_data, team, path_list, sub_graphs, sub_Vs, vs_to_vis
                 reason.append(3)
             elif too_far:
                 reason.append(4)
+            elif current_pos:
+                reason.append(5)
             else:
                 reason.append(None)
 

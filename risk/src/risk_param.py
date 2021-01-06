@@ -162,8 +162,6 @@ def create_team(specs):
 
 def create_subgraph(g, list_danger, kappa):
 
-    V, n = ext.get_set_vertices(g)
-
     # identify vertices which danger level is <= to threshold
     pruned_vs = g.vs.select([v for v, z in enumerate(list_danger) if z <= kappa])
 
