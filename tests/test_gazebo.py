@@ -1,5 +1,6 @@
 from milp_sim.risk.classes.gazebo import MyGazeboSim
 from milp_sim.risk.src import base_fun as bf
+import os
 
 
 def test_no_danger():
@@ -161,6 +162,60 @@ def test_change_belief():
     assert my_belief_vector[0] == b_dummy[8]
     assert my_belief_vector[8] == 0
 
+
+def test_log_file():
+    # dummy parameters to test
+    n = 46
+    v_maybe = [8, 10, 12, 14, 17, 15]
+    b_dummy = [0.0 for i in range(n + 1)]
+    for vertex in v_maybe:
+        b_dummy[vertex] = 1.0 / 6
+    visited_dummy = [[1], [1], [1]]
+    simulation_op = 1
+    t = 1
+
+    # searcher 2 got stuck
+    pos_dummy = [8, -2, 5]
+
+    log_path = os.path.dirname(os.path.abspath(__file__))
+
+    # time step 1
+    ms = MyGazeboSim(pos_dummy, b_dummy, visited_dummy, t, simulation_op, log_path)
+
+    # original parameters (same as before)
+    assert ms.v0 == [1]
+    assert ms.kappa_original == [3, 4, 5]
+    assert ms.alpha_original == [0.6, 0.4, 0.4]
+    assert ms.S_original == [1, 2, 3]
+    assert ms.m_original == 3
+
+    # result of input parameters
+    assert ms.id_map == [(1, 1), (2, -1), (3, 2)]
+    assert ms.input_pos == pos_dummy
+    assert ms.bt_1 == b_dummy
+    assert ms.time_step == 1
+    assert ms.sim_op == simulation_op
+
+    # modified (2/3 searchers were alive prior to interaction)
+    assert ms.visitedt_1 == visited_dummy
+    assert ms.current_pos == [8, 5]
+    assert ms.m == 2
+    assert ms.kappa == [3, 5]
+    assert ms.alpha == [0.6, 0.4]
+
+    assert ms.alive == [1, 3]
+    assert ms.killed == [2]
+    assert ms.abort is False
+
+    my_plan, my_belief_vector, my_visited = ms.output_results()
+
+    assert my_plan[2] == [-1 for i in range(14 + 1)]
+    assert len(my_belief_vector) == 47
+
+    assert my_visited == [1, 8, 5]
+
+    assert my_belief_vector[0] == b_dummy[8]
+    assert my_belief_vector[8] == 0
 
 
 

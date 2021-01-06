@@ -203,6 +203,7 @@ def check_plan(team, danger, solver_data, path_list: dict):
     z_hat = danger.z_hat
     # problem graph
     g = solver_data.g
+    V = ext.get_set_vertices(g)[0]
 
     # all v to be visited
     vs_to_visit = []
@@ -232,8 +233,12 @@ def check_plan(team, danger, solver_data, path_list: dict):
 
         plan_s = path_list[s_id]
 
-        # sub graph with vertices that danger level <= threshold
-        sub_g, sub_vertices = rp.create_subgraph(g, z_hat, s_kappa)
+        if danger.kill and danger.constraints:
+            # sub graph with vertices that danger level <= threshold
+            sub_g, sub_vertices = rp.create_subgraph(g, z_hat, s_kappa)
+        else:
+            sub_g, sub_vertices = g, V
+
         sub_graphs.append(sub_g)
         sub_Vs.append(sub_vertices)
 
@@ -241,15 +246,17 @@ def check_plan(team, danger, solver_data, path_list: dict):
             if v not in vs_to_visit:
                 vs_to_visit.append(v)
 
-            # get danger info for vertex v
-            zhat_v = danger.get_zhat(v)
+            if danger.kill and danger.constraints:
+                # get danger info for vertex v
+                zhat_v = danger.get_zhat(v)
 
-            # PT estimate
-            if danger.perception == danger.options[0] and zhat_v > s_kappa:
-                danger_error = 'Error in planned path! s = ' + str(s_id0) + ' k = ' + str(s_kappa) + ' || v = ' + str(v) +\
-                               ' z_hat = ' + str(zhat_v)
-                print(danger_error)
-                danger_ok = False
+                # PT estimate
+                if danger.perception == danger.options[0] and zhat_v > s_kappa:
+                    danger_error = 'Error in planned path! s = ' + str(s_id0) + ' k = ' + str(
+                        s_kappa) + ' || v = ' + str(v) + \
+                                   ' z_hat = ' + str(zhat_v)
+                    print(danger_error)
+                    danger_ok = False
 
     belief_nonzero, plan_eval = check_wrt_belief(solver_data, team, path_list, sub_graphs, sub_Vs, vs_to_visit)
 
