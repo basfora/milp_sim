@@ -15,9 +15,12 @@ from milp_mespp.core import milp_fun as mf
 from milp_mespp.core import create_parameters as cp
 from milp_mespp.core import construct_model as cm
 from milp_mespp.core import plan_fun as pln
+from milp_sim.risk.src import base_fun as bf
 from gurobipy import *
 
+
 from milp_sim.risk.src import risk_param as rp
+import time
 
 
 # -----------------------------------------------------------------------------------
@@ -152,7 +155,7 @@ def run_planner(specs=None, sim_data=False, printout=True):
 
 
 # UT - ok
-def planner_module(belief, target, team, solver_data, danger, t=0, printout=True):
+def planner_module(belief, target, team, solver_data, danger, t=0, printout=True, folder_path=None):
 
     """Planner module to be used for planner only (sim_data=False) or simulation (sim_data = True)"""
 
@@ -176,8 +179,13 @@ def planner_module(belief, target, team, solver_data, danger, t=0, printout=True
     # get position of each searcher at each time-step based on x[s, v, t] variable to path [s, t] = v
     team.searchers, path_dict = pln.update_plan(team.searchers, x_s)
 
+    path_list = ext.path_as_list(path_dict)
+
+    if folder_path is not None:
+        belief_nonzero, plan_eval, danger_ok, danger_error = check_plan(team, danger, solver_data, path_list)
+        bf.save_log_file(path_list, belief_nonzero, plan_eval, danger_ok, danger_error, t, folder_path)
+
     if printout:
-        path_list = ext.path_as_list(path_dict)
         pln.print_path_list(path_list)
         if isinstance(time_sol, dict):
             t_sol = time_sol['total']
@@ -186,6 +194,164 @@ def planner_module(belief, target, team, solver_data, danger, t=0, printout=True
         print("Solving time: %.5f" % t_sol)
 
     return belief, target, team, solver_data, danger, inf
+
+
+def check_plan(team, danger, solver_data, path_list: dict):
+    """Check if planner is not doing anything stupid"""
+
+    # information about danger at time t
+    z_hat = danger.z_hat
+    # problem graph
+    g = solver_data.g
+
+    # all v to be visited
+    vs_to_visit = []
+    # sub graphs for each searcher danger level
+    sub_graphs = []
+    sub_Vs = []
+    # thresholds
+    kappa = [team.kappa_original[s-1] for s in team.alive]
+
+    # ----
+    # danger-aware
+    # ----
+    # check if all vertices are below allowed danger (given current info)
+    danger_ok = True
+    danger_error = ''
+    # only care about the living searchers
+    for s_id in team.searchers.keys():
+
+        s = team.searchers[s_id]
+
+        # original id
+        s_id0 = s.id_0
+
+        # current idx
+        s_idx = ext.get_python_idx(s_id)
+        s_kappa = kappa[s_idx]
+
+        plan_s = path_list[s_id]
+
+        # sub graph with vertices that danger level <= threshold
+        sub_g, sub_vertices = rp.create_subgraph(g, z_hat, s_kappa)
+        sub_graphs.append(sub_g)
+        sub_Vs.append(sub_vertices)
+
+        for t, v in enumerate(plan_s):
+            if v not in vs_to_visit:
+                vs_to_visit.append(v)
+
+            # get danger info for vertex v
+            zhat_v = danger.get_zhat(v)
+
+            # PT estimate
+            if danger.perception == danger.options[0] and zhat_v > s_kappa:
+                danger_error = 'Error in planned path! s = ' + str(s_id0) + ' k = ' + str(s_kappa) + ' || v = ' + str(v) +\
+                               ' z_hat = ' + str(zhat_v)
+                print(danger_error)
+                danger_ok = False
+
+    belief_nonzero, plan_eval = check_wrt_belief(solver_data, team, path_list, sub_graphs, sub_Vs, vs_to_visit)
+
+    return belief_nonzero, plan_eval, danger_ok, danger_error
+
+
+def check_wrt_belief(solver_data, team, path_list, sub_graphs, sub_Vs, vs_to_visit):
+
+    # tic = time.perf_counter()
+    # planning horizon
+    h = solver_data.horizon[0]
+    # belief vector computed by the planner at t = 0
+    t = 0
+    belief_nonzero = solver_data.get_nonzero_beta(t)
+
+    # ----
+    # target capture
+    # ----
+    plan_eval = []
+
+    # for each vertex with some prob of finding the target
+    for vb in belief_nonzero:
+
+        # just to debug, (1, [2], [3], [4])
+        reward_collect = False
+        # none of the options above and vertex not being considered (5)
+        reason = []
+
+        # (1) reward is being collected
+        # check if vb will be visited (by any searcher):
+        if vb in vs_to_visit:
+            reward_collect = True
+            plan_eval.append((reward_collect, reason))
+            # move on to next vertex in belief
+            continue
+
+        # if not, let's find out why
+        # go through each searcher allowed vertices
+        s_id = 0
+        for s_id0 in team.searchers_original.keys():
+
+            if s_id0 not in team.alive:
+                reason.append(-1)
+                continue
+
+            s_id += 1
+            too_dangerous, not_connected, too_far = False, False, False,
+            s_idx = ext.get_python_idx(s_id)
+            # sub graph
+            sub_g = sub_graphs[s_idx]
+            allowed_vertices = sub_Vs[s_idx]
+            # searcher current position
+            s_pos = path_list[s_id][0]
+
+            # maybe it's not reachable
+            # (2) too dangerous: vb is not part of searcher's subgraph
+            if vb not in allowed_vertices:
+                too_dangerous = True
+
+            # if it's in the graph, it might be unconnected or too far from current searcher position
+            else:
+                connection, distance = rp.connected(sub_g, s_pos, vb)
+                # is connected
+                if connection:
+                    # (4) but too far
+                    if distance > h:
+                        too_far = True
+                else:
+                    # (3) not connected
+                    not_connected = True
+
+            # store reason
+            if too_dangerous:
+                reason.append(2)
+            elif not_connected:
+                reason.append(3)
+            elif too_far:
+                reason.append(4)
+            else:
+                reason.append(None)
+
+        plan_eval.append((reward_collect, reason))
+
+    # print_plan_eval(belief_nonzero, plan_eval)
+    # toc = time.perf_counter()
+
+    # print('Time = %s' % str(toc-tic))
+
+    return belief_nonzero, plan_eval
+
+
+def print_plan_eval(belief_nonzero, plan_eval):
+
+    for i, vb in enumerate(belief_nonzero):
+        print('Vertex %d' % vb)
+
+        if plan_eval[i][0]:
+            print('will be visited')
+        else:
+            print('not in plan because %s' % str(plan_eval[i][1]))
+
+    return
 
 
 def run_solver(g, horizon, searchers, b0, M_target, danger, solver_type='central', timeout=30 * 60,

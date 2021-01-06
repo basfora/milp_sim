@@ -79,6 +79,8 @@ class MyInputs2(MyInputs):
         self.human_gt = False
         self.all_descriptions = False
 
+        self.log_file = False
+
         self.danger_levels, self.n_levels, self.level_label, self.level_color = MyDanger.define_danger_levels()
 
     def use_kill(self, status=True, op=3):
@@ -103,6 +105,9 @@ class MyInputs2(MyInputs):
 
     def set_gt(self, status=False):
         self.human_gt = status
+
+    def use_log_file(self):
+        self.log_file = True
 
     def use_danger_constraints(self, status=True):
         self.danger_constraints = status
@@ -292,6 +297,18 @@ class MyInputs2(MyInputs):
         folder_path = self.parent_path + '/' + self.name_folder
         ext.path_exists(folder_path)
         self.path_folder = folder_path
+        self.create_log_file()
+
+    def create_log_file(self):
+
+        f_name = "sim_log"
+        f_path = self.path_folder + '/' + f_name + '.txt'
+
+        f = open(f_path, 'w+')
+
+        f.close()
+
+        return
 
     def set_prob_kill(self, prob_list: list or int):
 
@@ -380,6 +397,21 @@ class MySolverData2(MySolverData):
 
         self.eta[t] = eta
         self.eta_hat[t] = eta_hat
+
+    def get_nonzero_beta(self, t, t_plan=None):
+
+        if t_plan is None:
+            t_plan = ext.get_last_key(self.belief)
+
+        belief = self.retrieve_solver_belief(t_plan, t)
+
+        list_v = []
+        for i, beta in enumerate(belief):
+            if i == 0:
+                continue
+            if beta > 0.0:
+                list_v.append(i)
+        return list_v
 
 
 class MyMission:

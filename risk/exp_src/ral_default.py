@@ -28,7 +28,7 @@ def specs_basic():
     return specs
 
 
-def specs_m_3():
+def specs_num_sim():
     """Set specs that won't change"""
 
     specs = specs_basic()
@@ -67,7 +67,7 @@ def specs_danger_common():
     """Set common danger specs
     """
 
-    specs = specs_m_3()
+    specs = specs_num_sim()
 
     # danger files
     base_name = 'estimate_danger_fire_des_NFF_freq_'
@@ -314,7 +314,7 @@ def pb_pk_333(specs_in=None):
 
 
 def get_believes():
-    specs = specs_m_3()
+    specs = specs_num_sim()
 
     for turn in specs.list_turns:
 
@@ -334,6 +334,9 @@ def get_believes():
 
 
 def num_sim(specs):
+
+    specs.use_log_file()
+
     # loop for number of repetitions
     for turn in specs.list_turns:
 

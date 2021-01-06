@@ -249,6 +249,32 @@ def save_sim_data(belief, target, team, solver_data, danger, specs, mission, fil
         return True
 
 
+def save_log_file(path_list, belief_nonzero, plan_eval, danger_ok, danger_error, t, folder_path):
+    """Save log in txt file if needed to debug"""
+
+    file_name = 'sim_log'
+    file_path = assemble_file_path(folder_path, file_name, 'txt')
+
+    f = open(file_path, 'a')
+
+    lines = dict()
+    lines[0] = '---------'
+    lines[1] = str(t) + '\n'
+    lines[2] = str(belief_nonzero) + '\n'
+    lines[3] = str(path_list) + '\n'
+    lines[4] = str(plan_eval) + '\n'
+    lines[5] = str(danger_ok) + '\n'
+    lines[6] = str(danger_error) + '\n'
+
+    for k in lines:
+        line = lines[k]
+        f.write(line)
+
+    f.close()
+
+    return
+
+
 # ------------------------
 # handy functions
 # -----------------------
@@ -299,19 +325,19 @@ def smart_division(in_data, dem=100, dec=2):
     return result
 
 
-def smart_in(v, list_v):
+def smart_in(v, my_list):
 
     is_in = False
 
-    if isinstance(list_v, list):
+    if isinstance(my_list, list):
 
-        if isinstance(list_v[0], list):
-            for inner_list in list_v:
+        if isinstance(my_list[0], list):
+            for inner_list in my_list:
                 if v in inner_list:
                     is_in = True
                     break
         else:
-            if v in list_v:
+            if v in my_list:
                 is_in = True
             else:
                 is_in = False

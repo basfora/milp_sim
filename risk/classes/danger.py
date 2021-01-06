@@ -707,7 +707,7 @@ class MyDanger:
         return eta_hat
 
     def get_Hhat(self, v: int):
-        # get level for that vertex (z_hat)
+        # get H for that vertex (H_hat)
         v_idx = ext.get_python_idx(v)
         H_hat = self.H_hat[v_idx]
 
@@ -1285,21 +1285,30 @@ class MyDanger:
                   % (z_true, z_25, z_50, z_75))
 
     @staticmethod
-    def print_danger_levels(f_name):
+    def print_danger_levels(f_name, op=1, k_mva=3):
 
         data = MyDanger.load_danger_data(f_name)
 
-        op = 1
+        for v in data.keys():
+
+            eta = data.get(v)
+            print('Vertex %d:\nDistribution:  eta = %s' % (v, str(eta)))
+
+            z = MyDanger.z_from_eta(eta, op, k_mva)
+            print('Point Estimate: z = %d \n ---' % z)
+
+    @staticmethod
+    def print_estimated_levels(f_name, op=4, k_mva=3):
+
+        data = MyDanger.load_danger_data(f_name)
 
         for v in data.keys():
             eta = data.get(v)
 
-            z = MyDanger.z_from_eta(eta, op)
+            z = MyDanger.z_from_eta(eta, op, k_mva)
 
-            print('Vertex %d:\nDistribution:  eta = %s'
-                  % (v, str(eta)))
-            print('Point Estimate, z_true = %d \n ---'
-                  % (z))
+            print('Vertex %d:\nDistribution:  eta_hat = %s' % (v, str(eta)))
+            print('Point Estimate, z_hat = %d \n ---' % z)
 
     @staticmethod
     def print_fake_data():

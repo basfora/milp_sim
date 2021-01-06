@@ -30,6 +30,7 @@ class MyTeam2:
         self.searchers = dict()
         # alive searchers -- original id (list)
         self.alive = self.S  # init as S (but will be different once an agent dies)
+
         # thresholds
         self.alpha = []
         self.kappa = []

@@ -33,6 +33,9 @@ def risk_simulator(specs, printout=True):
     t, t_plan = 0, 0
     path = {}
     # _____________________
+    log_path = None
+    if specs.log_file:
+        log_path = specs.path_folder
 
     # begin simulation loop
     while t < deadline:
@@ -47,7 +50,7 @@ def risk_simulator(specs, printout=True):
             sim_data = True
 
             belief, target, team, solver_data, danger, inf = plnr.planner_module(belief, target, team, solver_data,
-                                                                                 danger, t, sim_data)
+                                                                                 danger, t, sim_data, log_path)
 
             # break here if the problem was infeasible
             if inf:

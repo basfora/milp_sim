@@ -4,7 +4,8 @@ from milp_sim.risk.classes.danger import MyDanger
 
 from milp_mespp.core import create_parameters as cp
 from milp_mespp.core import extract_info as ext
-
+from igraph import *
+import copy
 
 def default_specs():
     """Define specs for simulation of SS-2
@@ -153,6 +154,50 @@ def create_team(specs):
     team.set_danger_perception(specs.perception)
 
     return team
+
+
+# -----------------------------------------
+# graph-related functions
+# -----------------------------------------
+
+def create_subgraph(g, list_danger, kappa):
+
+    V, n = ext.get_set_vertices(g)
+
+    # identify vertices which danger level is <= to threshold
+    pruned_vs = g.vs.select([v for v, z in enumerate(list_danger) if z <= kappa])
+
+    # create subgraph only with those
+    sub_g = g.subgraph(pruned_vs)
+
+    # return also list of vertices in the graph
+    sub_vertices = [v for v in sub_g.vs["label"]]
+
+    # find shortest path length between any two vertices
+    short_paths = sub_g.shortest_paths_dijkstra()
+    # if not connected the distance will be inf
+    sub_g["path_len"] = short_paths
+
+    return sub_g, sub_vertices
+
+
+def connected(g, v1, v2):
+
+    V = [v for v in g.vs["label"]]
+
+    v1_idx = V.index(v1)
+    v2_idx = V.index(v2)
+
+    conn = g.cohesion(v1_idx, v2_idx, True, "infinity")
+
+    distance = g["path_len"][v1_idx][v2_idx]
+
+    if conn > 0:
+        conn = True
+    else:
+        conn = False
+
+    return conn, distance
 
 
 # -----------------------------------------

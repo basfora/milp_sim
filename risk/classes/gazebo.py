@@ -8,7 +8,7 @@ import copy
 
 class MyGazeboSim:
 
-    def __init__(self, input_pos: list, b_0: list, visited: list, time_step: int, sim_op=1):
+    def __init__(self, input_pos: list, b_0: list, visited: list, time_step: int, sim_op=1, log_path=None):
 
         # original parameters (tailored to ral)
         self.v0 = [1]
@@ -31,6 +31,7 @@ class MyGazeboSim:
         self.visitedt_1 = visited
         self.time_step = time_step
         self.sim_op = sim_op
+        self.log_path = log_path
 
         # -----------------------------------------------
         # init empty vars
@@ -315,7 +316,7 @@ class MyGazeboSim:
         sim_data = True
 
         belief, target, team, solver_data, danger, inf = plnr.planner_module(belief, target, team, solver_data,
-                                                                             danger, t, sim_data)
+                                                                             danger, t, sim_data, self.log_path)
 
         # break here if the problem was infeasible
         if inf:
