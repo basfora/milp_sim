@@ -28,7 +28,7 @@ class MyGazeboSim:
         # belief vector
         self.bt_1 = b_0
         # vertices visited = [v, u, w,..]
-        self.visitedt_1 = visited
+        self.visited_t_1 = visited
         self.time_step = time_step
         self.sim_op = sim_op
         self.log_path = log_path
@@ -201,6 +201,9 @@ class MyGazeboSim:
         # set start searchers from current position
         self.specs.set_start_searchers(self.current_pos)
 
+        # set threshold of searchers
+        self.adjust_threshold()
+
         # set belief from previous time
         self.specs.set_b0(self.bt_1)
 
@@ -243,7 +246,7 @@ class MyGazeboSim:
     # --------------------------------------------------------------------------------
     def update_visited(self, current_pos: list):
 
-        for v in self.visitedt_1:
+        for v in self.visited_t_1:
             self.visited = self.smart_in(v, self.visited)
 
         for v in current_pos:

@@ -27,31 +27,31 @@ if __name__ == "__main__":
     i = 1
     tic = get_timer()
 
-    """PT-PU-345"""
-    # default
-    specs = ral.pt_pu_345()
-    ral.num_sim(specs)
-    # ---
-    del specs
-    i, tic = get_time(tic, i)
+    # """PT-PU-345"""
+    # # default
+    # specs = ral.pt_pu_345()
+    # ral.num_sim(specs)
+    # # ---
+    # del specs
+    # i, tic = get_time(tic, i)
+    #
+    # """PT-PK-345"""
+    # # default
+    # specs = ral.pt_pk_345()
+    # ral.num_sim(specs)
+    # # ---
+    # del specs
+    # i, tic = get_time(tic, i)
+    #
+    # """NC DK worst case scenario"""
+    # # no constraints (should be worse)
+    # specs = ral.specs_no_constraints()
+    # ral.num_sim(specs)
+    # # ---
+    # del specs
+    # i, tic = get_time(tic, i)
 
-    """PT-PK-345"""
-    # default
-    specs = ral.pt_pk_345()
-    ral.num_sim(specs)
-    # ---
-    del specs
-    i, tic = get_time(tic, i)
-
-    """NC DK worst case scenario"""
-    # no constraints (should be worse)
-    specs = ral.specs_no_constraints()
-    ral.num_sim(specs)
-    # ---
-    del specs
-    i, tic = get_time(tic, i)
-
-    """NC DK no danger scenario"""
+    """NC no danger scenario"""
     # no constraints (should be worse)
     specs = ral.specs_no_danger()
     ral.num_sim(specs)

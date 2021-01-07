@@ -142,7 +142,7 @@ def test_change_belief():
     assert ms.sim_op == simulation_op
 
     # modified (2/3 searchers were alive prior to interaction)
-    assert ms.visitedt_1 == visited_dummy
+    assert ms.visited_t_1 == visited_dummy
     assert ms.current_pos == [8, 5]
     assert ms.m == 2
     assert ms.kappa == [3, 5]
@@ -197,7 +197,7 @@ def test_log_file():
     assert ms.sim_op == simulation_op
 
     # modified (2/3 searchers were alive prior to interaction)
-    assert ms.visitedt_1 == visited_dummy
+    assert ms.visited_t_1 == visited_dummy
     assert ms.current_pos == [8, 5]
     assert ms.m == 2
     assert ms.kappa == [3, 5]

@@ -290,6 +290,7 @@ def check_plan(team, danger, solver_data, path_list: dict):
 def check_wrt_belief(solver_data, team, path_list, sub_graphs, sub_Vs, vs_to_visit):
 
     # tic = time.perf_counter()
+
     # planning horizon
     h = solver_data.horizon[0]
     # belief vector computed by the planner at t = 0
@@ -372,9 +373,7 @@ def check_wrt_belief(solver_data, team, path_list, sub_graphs, sub_Vs, vs_to_vis
 
         plan_eval.append((reward_collect, reason))
 
-    # print_plan_eval(belief_nonzero, plan_eval)
     # toc = time.perf_counter()
-
     # print('Time = %s' % str(toc-tic))
 
     return belief_nonzero, plan_eval
