@@ -270,6 +270,7 @@ def test_pb_pu_345():
     assert specs.perception == specs.perception_list[1]
     assert specs.size_team == 2
     assert specs.kappa == [3, 4, 5]
+    assert specs.alpha == [0.6, 0.4, 0.4]
     assert specs.true_priori == False
 
 
@@ -284,6 +285,7 @@ def test_pb_pu_335():
     assert specs.danger_true == 'gt_danger_NFF'
     assert specs.perception == specs.perception_list[1]
     assert specs.kappa == [3, 3, 5]
+    assert specs.alpha == [0.6, 0.6, 0.4]
     assert specs.true_priori is False
 
     # with input
@@ -297,6 +299,7 @@ def test_pb_pu_335():
     assert specs.perception == specs.perception_list[1]
     assert specs.size_team == 2
     assert specs.kappa == [3, 3, 5]
+    assert specs.alpha == [0.6, 0.6, 0.4]
     assert specs.true_priori is False
 
 
@@ -324,6 +327,7 @@ def test_pb_pu_333():
     assert specs.perception == specs.perception_list[1]
     assert specs.size_team == 2
     assert specs.kappa == [3, 3, 3]
+    assert specs.alpha == [0.6, 0.6, 0.6]
     assert specs.true_priori is False
 
 
