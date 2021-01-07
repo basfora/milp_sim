@@ -249,7 +249,7 @@ def save_sim_data(belief, target, team, solver_data, danger, specs, mission, fil
         return True
 
 
-def save_log_file(path_list, belief_nonzero, plan_eval, danger_ok, danger_error, t, folder_path):
+def save_log_file(path_list, belief_nonzero, plan_eval, danger_ok, danger_error, my_config, t, folder_path):
     """Save log in txt file if needed to debug"""
 
     file_name = 'sim_log'
@@ -260,11 +260,12 @@ def save_log_file(path_list, belief_nonzero, plan_eval, danger_ok, danger_error,
     lines = dict()
     lines[0] = '---------'
     lines[1] = str(t) + '\n'
-    lines[2] = str(belief_nonzero) + '\n'
-    lines[3] = str(path_list) + '\n'
-    lines[4] = str(plan_eval) + '\n'
-    lines[5] = str(danger_ok) + '\n'
-    lines[6] = str(danger_error) + '\n'
+    lines[2] = str(my_config) + '\n'
+    lines[3] = str(belief_nonzero) + '\n'
+    lines[4] = str(path_list) + '\n'
+    lines[5] = str(plan_eval) + '\n'
+    lines[6] = str(danger_ok) + '\n'
+    lines[7] = str(danger_error) + '\n'
 
     for k in lines:
         line = lines[k]

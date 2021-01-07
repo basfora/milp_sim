@@ -187,8 +187,8 @@ def planner_module(belief, target, team, solver_data, danger, t=0, printout=True
 
     if folder_path is not None:
         try:
-            belief_nonzero, plan_eval, danger_ok, danger_error = check_plan(team, danger, solver_data, path_list)
-            bf.save_log_file(path_list, belief_nonzero, plan_eval, danger_ok, danger_error, t, folder_path)
+            belief_nonzero, plan_eval, danger_ok, danger_error, my_config = check_plan(team, danger, solver_data, path_list)
+            bf.save_log_file(path_list, belief_nonzero, plan_eval, danger_ok, danger_error, my_config, t, folder_path)
         except:
             pass
 
@@ -205,6 +205,8 @@ def planner_module(belief, target, team, solver_data, danger, t=0, printout=True
 
 def check_plan(team, danger, solver_data, path_list: dict):
     """Check if planner is not doing anything stupid"""
+
+    my_config = ['planner', 'priori', 'kappa', 'alpha']
 
     # information about danger at time t
     z_hat = danger.z_hat
@@ -241,13 +243,32 @@ def check_plan(team, danger, solver_data, path_list: dict):
 
         if danger.kill and danger.constraints:
             if danger.perception == danger.options[0]:
+                my_config[0] = 'PT'
+                my_config[3] = 'x'
                 # sub graph with vertices that danger level <= threshold
                 sub_g, sub_vertices = rp.create_subgraph(g, z_hat, s_kappa)
             else:
+                my_config[0] = 'PB'
+                my_config[3] = str(team.alpha)
                 H_s = [Hs_hat[vidx][s_idx] for vidx in range(n)]
                 # sub graph with vertices that H >= alpha threshold
                 sub_g, sub_vertices = rp.create_subgraph_H(g, H_s, s_alpha)
+
+            if danger.true_priori:
+                my_config[1] = 'PK'
+            else:
+                my_config[1] = 'PU'
+
+            my_config[2] = str(team.kappa)
+
         else:
+            if not danger.kill:
+                my_config[0] = 'ND'
+            else:
+                my_config[0] = 'NC'
+            my_config[1] = 'x'
+            my_config[2] = 'x'
+            my_config[3] = 'x'
             sub_g, sub_vertices = g, V
 
         # only of alive searchers
@@ -284,7 +305,7 @@ def check_plan(team, danger, solver_data, path_list: dict):
 
     belief_nonzero, plan_eval = check_wrt_belief(solver_data, team, path_list, sub_graphs, sub_Vs, vs_to_visit)
 
-    return belief_nonzero, plan_eval, danger_ok, danger_error
+    return belief_nonzero, plan_eval, danger_ok, danger_error, my_config
 
 
 def check_wrt_belief(solver_data, team, path_list, sub_graphs, sub_Vs, vs_to_visit):
