@@ -164,7 +164,9 @@ def kappa_335(specs=None):
         specs = specs_danger_common()
 
     kappa = [3, 3, 5]
+    alpha = [0.6, 0.6, 0.4]
     specs.set_threshold(kappa, 'kappa')
+    specs.set_threshold(alpha, 'alpha')
 
     return specs
 
@@ -175,7 +177,9 @@ def kappa_333(specs=None):
         specs = specs_danger_common()
 
     kappa = [3, 3, 3]
+    alpha = [0.6, 0.6, 0.6]
     specs.set_threshold(kappa, 'kappa')
+    specs.set_threshold(alpha, 'alpha')
 
     return specs
 
