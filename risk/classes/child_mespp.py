@@ -228,51 +228,55 @@ class MyInputs2(MyInputs):
 
         my_code = []
 
-        if self.danger_constraints is False:
-            my_code.append('NC')
-        else:
-            my_code.append('DC')
-
         if self.danger_kill is False:
             my_code.append('NK')
         else:
             my_code.append('DK')
 
-        unique = []
-        for k in self.kappa:
-            if k not in unique:
-                unique.append(k)
-
-        if self.homogeneous_team is True:
-            my_code.append('HH')
+        if self.danger_constraints is False:
+            my_code.append('NC')
         else:
-            my_code.append('HT')
+            my_code.append('DC')
 
-        if self.human_gt is True:
-            my_code.append('_HGT')
-        else:
-            my_code.append('_MGT')
+            if self.perception == self.perception_list[0]:
+                my_code.append('PT')
+            else:
+                my_code.append('PB')
+
+            if self.true_priori:
+                my_code.append('_PK')
+            else:
+                my_code.append('_PU')
+
+            if self.kappa == [3, 4, 5]:
+                my_code.append('345')
+            elif self.kappa == [3, 3, 5]:
+                my_code.append('335')
+            elif self.kappa == [3, 3, 3]:
+                my_code.append('333')
+
+        # if self.homogeneous_team is True:
+        #     my_code.append('HH')
+        # else:
+        #     my_code.append('HT')
+        #
+        # if self.human_gt is True:
+        #     my_code.append('_HGT')
+        # else:
+        #     my_code.append('_MGT')
 
         if self.all_descriptions:
-            my_code.append('desFC')
+            my_code.append('_desFC')
         else:
-            my_code.append('desFF')
+            my_code.append('_desFF')
 
-        if self.danger_constraints:
+        if self.danger_constraints and not self.true_priori:
             my_code.append('_' + str(self.percentage_img).zfill(2))
         else:
             my_code.append('_NA')
 
-        if self.danger_kill is True:
-            my_code.append(self.prob_id)
-
-        my_code.append(self.perception)
-
         if self.fov is False:
             my_code.append('_NFOV')
-
-        if self.true_priori:
-            my_code.append('_PK')
 
         my_name = self.assemble_name(my_code)
 

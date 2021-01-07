@@ -119,7 +119,7 @@ if __name__ == "__main__":
     eta = [0.1, 0.3, 0.2, 0.2, 0.2]
     list_k = [2, 4]
 
-    H1 = MyDanger.compute_H(eta, list_k)
+    H1 = MyDanger.compute_H(eta)
 
 
 

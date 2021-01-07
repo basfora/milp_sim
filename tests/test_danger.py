@@ -19,10 +19,11 @@ def test_compute_H():
     H2 = MyDanger.compute_H(eta)
     assert H2 == [0.1, 0.4, 0.6, 0.8, 1.0]
 
-    H1 = MyDanger.compute_H(eta, list_k)
+    H1 = MyDanger.get_H_for_team(H2, list_k)
+    H3 = MyDanger.compute_H_for_team(eta, list_k)
     my_sum2 = 0.1 + 0.3
     my_sum4 = 0.1 + 0.3 + 0.2 + 0.2
-    assert H1 == [my_sum2, my_sum4]
+    assert H1 == [my_sum2, my_sum4] == H3
 
 
 def test_argmax_eta():
@@ -208,9 +209,6 @@ def get_specs():
     return specs
 
 
-def test_mva():
-    print('hello')
-
 def test_create_and_estimate():
 
     specs = get_specs()
@@ -237,7 +235,8 @@ def test_create_and_estimate():
     # set danger values (ground truth, estimate and a priori)
     danger.set_true(danger_true)
     danger.set_priori(danger_priori)
-    danger.set_estimate(eta_hat_2)
+    danger.set_lookup(eta_hat_2)
+    danger.set_hat_0()
 
     assert danger.n == len(g.vs)
     assert danger.z0_0 == danger_priori
@@ -256,8 +255,9 @@ def test_create_and_estimate():
     danger = MyDanger(g)
     # set danger values (ground truth, estimate and a priori)
     danger.set_true(danger_true)
-    danger.set_estimate(eta_hat_1)
     danger.set_priori(danger_priori)
+    danger.set_lookup(eta_hat_1)
+    danger.set_hat_0()
 
     assert danger.n == len(g.vs)
     assert danger.z0_0 == danger_priori

@@ -644,7 +644,7 @@ class RiskPlot:
 
         for k in self.eta_values.keys():
             eta = self.eta_values.get(k)
-            z = MyDanger.all_z_from_eta(eta, 1)
+            z = MyDanger.compute_all_z(eta, 1)
             self.z_values[k] = z
 
     def load_eta_values(self):

@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     """NC DK no danger scenario"""
     # no constraints (should be worse)
-    specs = ral.specs_no_constraints()
+    specs = ral.specs_no_danger()
     ral.num_sim(specs)
     # ---
     del specs

@@ -168,7 +168,7 @@ def analysis_exp_1012():
 def plot_for_paper():
     # 3 plots mission outcome, casualties, mission times
     rp = RiskPlot()
-    #  [ND, PK, I5, NC]
+    #  [ND, PK, PU, NC]
     #  [0, 1, 2, 3, 4]
 
     # fig 1
@@ -190,7 +190,7 @@ def compile_data():
 
     rp = RiskPlot()
 
-    folder_names = ['1111DCDKHT_HGTFC-PT-05', '1111DCDKHT_MGTFC-PT-05', '1111DCDKHT_HGTFF-PT-05',
+    folder_names = ['0106-PT-PU-345', '1111DCDKHT_MGTFC-PT-05', '1111DCDKHT_HGTFF-PT-05',
                     '1111DCDKHT_MGTFF-PT-05']
     instance_base = ['DCDKHT_HGTdesFC_05hpoint_G46Vss2_1110_', 'DCDKHT_MGTdesFC_05hpoint_G46Vss2_1110_',
                      'DCDKHT_HGTdesFF_05hpoint_G46Vss2_1111_', 'DCDKHT_MGTdesFF_05hpoint_G46Vss2_1111_']
@@ -201,8 +201,8 @@ def compile_data():
 
 if __name__ == '__main__':
 
-    plot_for_paper()
-    # compile_data()
+    # plot_for_paper()
+    compile_data()
 
 
 

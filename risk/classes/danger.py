@@ -29,10 +29,12 @@ class MyDanger:
         self.constraints = True
         # apply kill probability
         self.kill = True
-        # true knowledge
+        # a priori knowledge
         self.true_priori = False
         self.uniform_priori = True
+        # estimation knowledge
         self.true_estimate = False
+
         self.mva_conservative = True
         # z true always gonna be mean, for now estimate also going to be mean (so it doesn't get stuck)
         self.z_true_op = 1
@@ -63,11 +65,11 @@ class MyDanger:
         # -------------------------
         # ground truth
         # -------------------------
-        # eta = [eta_l1, ... eta_l5]
+        # eta[v_idx] = [eta_l1, ... eta_l5]
         self.eta = []
-        # z = argmax eta_l \in {1,..5}
+        # z[v_idx] = argmax eta_l \in {1,..5}
         self.z = []
-        # probabilistic approach H = [cum for each level]
+        #  H[v_idx] = [cumulative for each level] - probabilistic approach
         self.H = []
 
         # probability kill
@@ -85,20 +87,22 @@ class MyDanger:
         self.H0_0 = []
 
         # estimates at each time step
-        # eta_hat[v] = [l1,...l5]
+        # eta_hat[v_idx] = [l1,...l5]
         self.eta_hat = []
-        # probable danger level
+        # probable danger level, zhat
         self.z_hat = []
-
-        # for each searcher
-        # H[s] = [H_s1, H_s2...H_sm] (estimate)
+        # for each level, H[l-1] = [H_l1, H_l2...H_l5] (estimate)
         self.H_hat = []
+        # for each searcher threshold
+        self.Hs_hat = []
 
         # to make getting the values easier
-        # look up of estimated danger for each vertex (when robots see every image in that vertex)
+        # look up of estimated danger (when robots sees available images in that vertex)
+        # etahat[v_idx] = [eta_hat_l1, ... eta_hat_l5]
         self.lookup_eta_hat = []
-        # H_l[v] = [l1...l5] (true value)
+        # H_hat[vidx] = [l1...l5]
         self.lookup_H_hat = []
+        # z[v_idx] = argmax eta_l \in {1,..5}
         self.lookup_z_hat = []
         # matching scores xi[v] = [[i1_1...i1_5], [i2_1,...i2_5]]
         self.xi = dict()
@@ -123,7 +127,7 @@ class MyDanger:
         # -----------------------
         # danger data from files
         # -----------------------
-        # true distributions (100% images)
+        # true distributions
         self.true_file_name = ''
         self.true_file_path = ''
         self.true_raw = None
@@ -132,8 +136,8 @@ class MyDanger:
         self.estimated_file_path = ''
         self.percentage_im = None
         self.estimated_raw = None
+        # path to files and extension
         self.extension = 'pkl'
-        # path to files
         self.folder_path = self.get_folder_path()
         # ----------------------
 
@@ -208,7 +212,7 @@ class MyDanger:
             self.fov = None
 
     # ----------------------
-    # Define true, priori and estimate values
+    # Define true, priori and estimate actual values (from input files)
     # ----------------------
 
     def set_true(self, eta_true):
@@ -226,17 +230,17 @@ class MyDanger:
             self.set_priori()
 
         if self.true_estimate:
-            self.set_estimate()
+            self.set_lookup()
 
     def set_priori(self, eta_priori=None):
         n = self.n
 
-        # use true value for priori if argument is none and true_priori is True
-        if self.true_priori:
-            eta0_0, z0_0, H0_0 = self.copy_true_value()
-        elif self.uniform_priori and eta_priori is None:
-            eta0_0, z0_0 = self.compute_uniform(self.n, self.z_pri_op, self.k_mva)
-            H0_0 = self.compute_all_H(eta0_0)
+        if eta_priori is None:
+            # use true value for priori if argument is none and true_priori is True
+            if self.true_priori:
+                eta0_0, z0_0, H0_0 = self.copy_true_value()
+            else:
+                eta0_0, z0_0, H0_0 = self.compute_uniform(self.n, self.z_pri_op, self.k_mva)
         else:
             # input probability
             eta0_0, z0_0 = self.compute_from_value(n, eta_priori, self.z_pri_op, self.k_mva)
@@ -248,27 +252,21 @@ class MyDanger:
         self.z0_0 = z0_0
         self.H0_0 = H0_0
 
-        # first estimate is a priori
-        self.eta_hat = eta0_0
-        self.z_hat = z0_0
-        self.H_hat = H0_0
-
         return
 
-    def set_estimate(self, etahat_off=None):
+    def set_lookup(self, etahat=None):
 
         # estimated danger from file
-        if isinstance(etahat_off, str):
-            per = int(etahat_off.split('_')[-1])
+        if isinstance(etahat, str):
+            per = int(etahat.split('_')[-1])
             percentage = per
-            self.estimated_from_file(etahat_off, percentage, self.extension)
-        else:
+            self.estimated_from_file(etahat, percentage, self.extension)
+        elif self.true_estimate:
             # overwrite if it's supposed to be true estimate
-            if self.true_estimate:
-                etahat_off = None
-
+            self.lookup_eta_hat, self.lookup_z_hat, self.lookup_H_hat = self.copy_true_value()
+        else:
             # useful for unit tests and sanity checks
-            self.estimated_from_value(etahat_off)
+            self.estimated_from_value(etahat)
 
     # ----------------------
     # From files --- load danger data and get ready for simulation
@@ -293,9 +291,11 @@ class MyDanger:
         if op == 'true':
             eta_true = bf.load_pickle_file(self.true_file_path)
             self.true_raw = eta_true
+            # eta[v_idx] = [eta_l1, ... eta_l5]
             self.eta = bf.is_list(self.true_raw)
-            # compute z
-            self.z = self.all_z_from_eta(self.eta, self.z_true_op,  None)
+            # compute z,  z[v_idx] = argmax eta_l \in {1,..5}
+            self.z = self.compute_all_z(self.eta, self.z_true_op, None)
+            # compute H, H[v_idx] = [cumulative for each level]
             self.H = self.compute_all_H(self.eta)
 
         elif op == 'hat':
@@ -307,7 +307,7 @@ class MyDanger:
             # make it easier, lookup eta_hat
             self.lookup_eta_hat = etahat_list
             # compute z_hat
-            self.lookup_z_hat = self.all_z_from_eta(self.lookup_eta_hat, self.z_est_op, self.k_mva)
+            self.lookup_z_hat = self.compute_all_z(self.lookup_eta_hat, self.z_est_op)
             # compute H_hat
             self.lookup_H_hat = self.compute_all_H(self.lookup_eta_hat)
 
@@ -317,7 +317,7 @@ class MyDanger:
 
         my_eta = [1, 0, 0, 0, 0]
         my_z = 1
-        my_H = [1, 0, 0, 0, 0]
+        my_H = [1, 1, 1, 1, 1]
 
         for v in self.v0:
             vidx = ext.get_python_idx(v)
@@ -331,21 +331,32 @@ class MyDanger:
             self.z0_0[vidx] = my_z
             self.H0_0[vidx] = my_H
 
-            # estimate
-            self.eta_hat[vidx] = my_eta
-            self.z_hat[vidx] = my_z
-            self.H_hat[vidx] = my_H
-
+            # look up
             self.lookup_eta_hat[vidx] = my_eta
             self.lookup_z_hat[vidx] = my_z
             self.lookup_H_hat[vidx] = my_H
 
-        # save in storage
-        self.stored_eta_hat[0] = copy.copy(self.eta0_0)
-        self.stored_z_hat[0] = copy.copy(self.z0_0)
-        self.stored_H_hat[0] = copy.copy(self.H0_0)
+            # estimate at t = 0
+            if len(self.eta_hat) > 0:
+                self.eta_hat[vidx] = my_eta
+                self.z_hat[vidx] = my_z
+                self.H_hat[vidx] = my_H
+            else:
+                pass
+
+        if len(self.eta_hat) == 0:
+            self.set_hat_0()
 
         return
+
+    def set_hat_0(self):
+        """Set first estimate (it will be a priori estimate)"""
+        # first estimate is a priori
+        self.eta_hat = copy.copy(self.eta0_0)
+        self.z_hat = copy.copy(self.z0_0)
+        self.H_hat = copy.copy(self.H0_0)
+
+        self.save_estimate()
 
     def estimated_from_file(self, f_name: str, percentage: float, extension='pkl'):
         # point to file
@@ -394,27 +405,7 @@ class MyDanger:
         else:
             eta_hat = bf.is_list(my_eta_hat)
 
-        self.set_lookup_hat(eta_hat, z_hat, H_hat)
-
-    def set_lookup_hat(self, eta_hat, z_hat=None, H_hat=None):
-        """Pre-Compute the estimated eta and z for all vertices,
-         considering robot is at that vertex"""
-
-        # distribution
-        self.lookup_eta_hat = eta_hat
-
-        # point estimate
-        if z_hat is None:
-            # compute z
-            self.lookup_z_hat = self.all_z_from_eta(self.lookup_eta_hat, self.z_est_op, self.k_mva)
-        else:
-            self.lookup_z_hat = z_hat
-
-        # cumulative distribution for each level
-        if H_hat is None:
-            self.lookup_H_hat = self.compute_all_H(self.lookup_eta_hat)
-        else:
-            self.lookup_H_hat = H_hat
+        self.lookup_eta_hat, self.lookup_z_hat, self.lookup_H_hat = eta_hat, z_hat, H_hat
 
     def set_scores(self, xi: str or dict):
 
@@ -454,7 +445,7 @@ class MyDanger:
         self.kappa = k
         self.alpha = a
 
-    def save_estimate(self, eta_hat=None, z_hat=None, H_hat=None, t=None):
+    def save_estimate(self, t=None):
         """Save estimated values for time step"""
 
         if t is None:
@@ -463,16 +454,11 @@ class MyDanger:
             except:
                 t = 0
 
-        if eta_hat is None:
-            eta_hat = copy.copy(self.eta_hat)
-            z_hat = copy.copy(self.z_hat)
-            H_hat = copy.copy(self.H_hat)
-
         # stored_z_hat[t] = [z_v1, z_v2....z_vn]
-        self.stored_z_hat[t] = z_hat
+        self.stored_z_hat[t] = copy.copy(self.z_hat)
         # stored_eta_hat[t] = [eta_v1,..., eta_vn], eta_v1 = [eta_1, ...eta_5]
-        self.stored_eta_hat[t] = eta_hat
-        self.stored_H_hat[t] = H_hat
+        self.stored_eta_hat[t] = copy.copy(self.eta_hat)
+        self.stored_H_hat[t] = copy.copy(self.H_hat)
 
     def update_estimate(self, eta_hat, z_hat, H_hat=None):
 
@@ -817,24 +803,26 @@ class MyDanger:
 
     @staticmethod
     def compute_uniform(n, op, k=None):
-        eta0_0, z0_0 = [], []
+        eta0_0, z0_0, H0_0 = [], [], []
 
         print('Setting uniform probability')
         for v in range(n):
             eta0_v = [0.2 for i in range(5)]
             z_v = MyDanger.z_from_eta(eta0_v, op, k)
+            H_v = MyDanger.compute_H(eta0_v)
 
             eta0_0.append(eta0_v)
             z0_0.append(z_v)
+            H0_0.append(H_v)
 
-        return eta0_0, z0_0
+        return eta0_0, z0_0, H0_0
 
     # --------------------
     # distribution to point estimate and vice versa
     # --------------------
 
     @staticmethod
-    def all_z_from_eta(eta: list or dict, op, k=None):
+    def compute_all_z(eta: list or dict, op, kappa=None):
         """Return list of point estimate for all vertices"""
 
         eta = bf.is_list(eta)
@@ -842,35 +830,21 @@ class MyDanger:
         n = len(eta)
         z = []
 
+        if op < 3:
+            kappa = None
+
         for vidx in range(n):
             eta_v = eta[vidx]
-            z_v = MyDanger.z_from_eta(eta_v, op, k)
+            z_v = MyDanger.z_from_eta(eta_v, op, kappa)
             z.append(z_v)
 
         return z
 
     # UT - ok
     @staticmethod
-    def eta_from_z(my_level: int, max_l=0.6):
-        """return list"""
-        # TODO change if necessary (discrete probability)
-        L = MyDanger.get_levels()
-        o_l = round((1 - max_l)/4, 4)
-
-        eta = []
-        for level in L:
-            if level == my_level:
-                eta.append(max_l)
-            else:
-                eta.append(o_l)
-
-        return eta
-
-    # UT - ok
-    @staticmethod
     def z_from_eta(eta_v: list, op, k=None):
         """
-        op 1: get max prob, if tie pick the one closest to the middle
+        op 1: get max prob, if tie pick the one closest to the middle (weighted average)
         op 2: get max prob, if tie pick conservative (max value)
         op 3: get max prob, if tie pick min threshold for team (break ties)
         op 4: get max prob, if tie pick min threshold + 1"""
@@ -894,6 +868,94 @@ class MyDanger:
             exit(print('No other options!'))
 
         return z
+
+    @staticmethod
+    def compute_all_H(eta: list):
+
+        n = len(eta)
+        H = []
+
+        for vidx in range(n):
+            eta_v = eta[vidx]
+            H_v = MyDanger.compute_H(eta_v)
+            H.append(H_v)
+
+        return H
+
+    # UT - ok
+    @staticmethod
+    def compute_H(eta_v: list):
+        """H = sum_1^l eta_l
+        return list
+        :param eta_v : prob of levels 1,...5
+        """
+
+        eta_v = MyDanger.normalize_eta(eta_v)
+        H = []
+
+        levels = MyDanger.get_levels()
+
+        for level in levels:
+            list_aux = [eta_v[i] for i in range(level)]
+            H.append(round(sum(list_aux), 3))
+
+        return H
+
+    @staticmethod
+    def get_H_for_level(H_v, level):
+        level_idx = ext.get_python_idx(level)
+        H_l = H_v[level_idx]
+        return H_l
+
+    @staticmethod
+    def get_H_for_team(H_v: list, kappa: list):
+
+        H_team = []
+        for level in kappa:
+            H_l = MyDanger.get_H_for_level(H_v, level)
+            H_team.append(H_l)
+
+        return H_team
+
+    @staticmethod
+    def compute_H_for_team(eta_v: list, kappa: list):
+        H_v = MyDanger.compute_H(eta_v)
+        H_team = MyDanger.get_H_for_team(H_v, kappa)
+
+        return H_team
+
+    @staticmethod
+    def get_all_H_for_team(H_list, kappa: list):
+
+        # H_all = [H_v1, H_v2,...,H_vn], H_v1 = [H_s1, H_s2.. H_sm], H_s1 = sum_{l=1}^k eta_l, H_s1 in [0,1]
+        H_all = []
+        n = len(H_list)
+
+        for vidx in range(n):
+            H_v = []
+            for level in kappa:
+                H_l = MyDanger.get_H_for_level(H_list[vidx], level)
+                H_v.append(H_l)
+            H_all.append(H_v)
+
+        return H_all
+
+    # UT - ok
+    @staticmethod
+    def eta_from_z(my_level: int, max_l=0.6):
+        """return list"""
+        # TODO change if necessary (discrete probability)
+        L = MyDanger.get_levels()
+        o_l = round((1 - max_l)/4, 4)
+
+        eta = []
+        for level in L:
+            if level == my_level:
+                eta.append(max_l)
+            else:
+                eta.append(o_l)
+
+        return eta
 
     # UT - ok
     @staticmethod
@@ -980,74 +1042,6 @@ class MyDanger:
                 break
 
         return z
-
-    @staticmethod
-    def compute_all_H(eta: list, kappa=None):
-
-        n = len(eta)
-        H = []
-
-        for vidx in range(n):
-            eta_v = eta[vidx]
-            H_v = MyDanger.compute_H(eta_v, kappa)
-            H.append(H_v)
-
-        return H
-
-    # UT - ok
-    @staticmethod
-    def compute_H(eta_v: list, kappa=None):
-        """H = sum_1^l eta_l
-        return list
-        :param eta_v : prob of levels 1,...5
-        :param kappa : list of thresholds, if none do for all levels (1-5)
-        """
-
-        H = []
-
-        eta_v = MyDanger.normalize_eta(eta_v)
-
-        if kappa is None:
-            levels = MyDanger.get_levels()
-            k_list = [level for level in levels]
-        else:
-            k_list = kappa
-
-        for level in k_list:
-            list_aux = [eta_v[i] for i in range(level)]
-            H.append(round(sum(list_aux), 3))
-
-        return H
-
-    def compute_Hs(self, op='true'):
-        """Compute H for all vertices
-        op 1: from true distribution
-        op 2: from a priori distribution (which is the current estimated)
-        op 3: from current estimated distribution
-        """
-
-        Hs, eta = [], []
-
-        if op == 'true':
-            eta = self.eta
-        elif op == 'hat':
-            eta = self.eta_hat
-        else:
-            exit()
-
-        if self.m > 0:
-            kappa = self.kappa
-            for v in range(self.n):
-                H_v = self.compute_H(eta[v], kappa)
-                Hs.append(H_v)
-
-            if op == 'true':
-                self.H = Hs
-            else:
-                self.H_hat = Hs
-
-        else:
-            exit(print('Please provide thresholds'))
 
     # ------------------
     # immutable stuff

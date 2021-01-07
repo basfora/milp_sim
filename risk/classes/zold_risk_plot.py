@@ -110,7 +110,7 @@ class RiskPlot:
 
         for per in self.eta_values.keys():
             eta = self.eta_values.get(per)
-            z = MyDanger.all_z_from_eta(eta, 1)
+            z = MyDanger.compute_all_z(eta, 1)
             self.z_values[per] = z
 
     def print_danger_data(self):

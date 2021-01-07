@@ -7,6 +7,7 @@ from milp_mespp.core import extract_info as ext
 from igraph import *
 import copy
 
+
 def default_specs():
     """Define specs for simulation of SS-2
     m = 3
@@ -75,11 +76,12 @@ def create_danger(specs):
 
     if specs.true_priori is False:
         # if danger hat is None, it's gonna use the true values
-        danger.set_estimate(specs.danger_hat)
         danger.set_priori(specs.danger_priori)
+        danger.set_lookup(specs.danger_hat)
     else:
         danger.uniform_priori = False
 
+    danger.set_hat_0()
     # make node 1 be danger level 1 to avoid inf at t=0, save it to priori, estimated and lookup
     danger.set_v0_danger()
 
@@ -164,6 +166,25 @@ def create_subgraph(g, list_danger, kappa):
 
     # identify vertices which danger level is <= to threshold
     pruned_vs = g.vs.select([v for v, z in enumerate(list_danger) if z <= kappa])
+
+    # create subgraph only with those
+    sub_g = g.subgraph(pruned_vs)
+
+    # return also list of vertices in the graph
+    sub_vertices = [v for v in sub_g.vs["label"]]
+
+    # find shortest path length between any two vertices
+    short_paths = sub_g.shortest_paths_dijkstra()
+    # if not connected the distance will be inf
+    sub_g["path_len"] = short_paths
+
+    return sub_g, sub_vertices
+
+
+def create_subgraph_H(g, list_Hs, alpha):
+
+    # identify vertices which danger level is <= to threshold
+    pruned_vs = g.vs.select([v for v, Hs in enumerate(list_Hs) if Hs >= alpha])
 
     # create subgraph only with those
     sub_g = g.subgraph(pruned_vs)

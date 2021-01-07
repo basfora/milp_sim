@@ -70,7 +70,6 @@ def add_kappa_point(md, my_vars: dict, vertices_t: dict, list_z_hat: list, list_
 
 
 def add_kappa_prob(md, my_vars: dict, vertices_t: dict, list_H: list, list_alpha: list, horizon: int):
-    # TODO UNIT TEST!
     """
     :param md : Gurobi model
     :param horizon : planning horizon (deadline)
@@ -114,8 +113,9 @@ def add_kappa_prob(md, my_vars: dict, vertices_t: dict, list_H: list, list_alpha
 
 def add_danger_constraints(md, my_vars: dict, vertices_t: dict, danger, searchers: dict, horizon: int):
     # point estimate (UT - ok)
+    list_kappa = danger.kappa
     if danger.perception == danger.options[0]:
-        list_kappa = danger.kappa
+
         # list of current estimated danger, list_z_hat = [zhat_v1, zhat_v2, ..., zhat_vn]
         list_z_hat = danger.z_hat
         # add danger constraints
@@ -124,7 +124,11 @@ def add_danger_constraints(md, my_vars: dict, vertices_t: dict, danger, searcher
     elif danger.perception == danger.options[1]:
         list_alpha = rp.get_alpha(searchers)
         # prep list_H with kappa
-        list_H = danger.compute_all_H(danger.eta_hat, danger.kappa)
+        H_levels = danger.H_hat
+
+        list_H = danger.get_all_H_for_team(H_levels, list_kappa)
+        # just to access easily
+        danger.Hs_hat = list_H
 
         # add danger constraints
         add_kappa_prob(md, my_vars, vertices_t, list_H, list_alpha, horizon)
@@ -204,9 +208,10 @@ def check_plan(team, danger, solver_data, path_list: dict):
 
     # information about danger at time t
     z_hat = danger.z_hat
+    Hs_hat = danger.Hs_hat
     # problem graph
     g = solver_data.g
-    V = ext.get_set_vertices(g)[0]
+    V, n = ext.get_set_vertices(g)
 
     # all v to be visited
     vs_to_visit = []
@@ -231,11 +236,17 @@ def check_plan(team, danger, solver_data, path_list: dict):
         # current idx (only alive)
         s_idx = ext.get_python_idx(s_id)
         s_kappa = team.kappa[s_idx]
+        s_alpha = team.alpha[s_idx]
         plan_s = path_list[s_id]
 
         if danger.kill and danger.constraints:
-            # sub graph with vertices that danger level <= threshold
-            sub_g, sub_vertices = rp.create_subgraph(g, z_hat, s_kappa)
+            if danger.perception == danger.options[0]:
+                # sub graph with vertices that danger level <= threshold
+                sub_g, sub_vertices = rp.create_subgraph(g, z_hat, s_kappa)
+            else:
+                H_s = [Hs_hat[vidx][s_idx] for vidx in range(n)]
+                # sub graph with vertices that H >= alpha threshold
+                sub_g, sub_vertices = rp.create_subgraph_H(g, H_s, s_alpha)
         else:
             sub_g, sub_vertices = g, V
 
@@ -244,6 +255,7 @@ def check_plan(team, danger, solver_data, path_list: dict):
         sub_Vs.append(sub_vertices)
 
         for t, v in enumerate(plan_s):
+            vidx = ext.get_python_idx(v)
             if v not in vs_to_visit:
                 vs_to_visit.append(v)
 
@@ -252,12 +264,20 @@ def check_plan(team, danger, solver_data, path_list: dict):
 
             if danger.kill and danger.constraints:
                 # get danger info for vertex v
-                zhat_v = z_hat[v-1]
+                zhat_v = z_hat[vidx]
+                Hs_hat_v = Hs_hat[vidx][s_idx]
 
                 # PT estimate
                 if danger.perception == danger.options[0] and zhat_v > s_kappa:
                     danger_error = 'Error in planned path! s = ' + str(s_id0) + ' k = ' + str(s_kappa) + \
                                    ' || v = ' + str(v) + ' z_hat = ' + str(zhat_v)
+                    print(danger_error)
+                    danger_ok = False
+
+                # PB estimate
+                elif danger.perception == danger.options[1] and Hs_hat_v < s_alpha:
+                    danger_error = 'Error in planned path! s = ' + str(s_id0) + ' k = ' + str(s_alpha) + \
+                                   ' || v = ' + str(v) + ' z_hat = ' + str(Hs_hat_v)
                     print(danger_error)
                     danger_ok = False
 
@@ -482,7 +502,7 @@ def distributed_wrapper(g, horizon, searchers, b0, M_target, danger, gamma, time
                 print('Computing path for s = %d, kappa = %d, at v = %d' % (s_id, searchers[s_id].kappa, v_s))
                 print('z_hat = %s' % str(danger.z_hat[v_s-1]))
                 print('eta_hat = %s' % str(danger.eta_hat[v_s-1]))
-                list_H = danger.compute_all_H(danger.eta_hat, danger.kappa)
+                list_H = danger.compute_all_H(danger.eta_hat)
                 print('H_hat = %s \nx-------------------------------------------------x' % str(list_H[v_s-1]))
 
                 obj_fun, time_sol, gap, threads = -1, -1, -1, -1
