@@ -265,7 +265,6 @@ def check_plan(team, danger, solver_data, path_list: dict):
             if danger.kill and danger.constraints:
                 # get danger info for vertex v
                 zhat_v = z_hat[vidx]
-                Hs_hat_v = Hs_hat[vidx][s_idx]
 
                 # PT estimate
                 if danger.perception == danger.options[0] and zhat_v > s_kappa:
@@ -275,11 +274,13 @@ def check_plan(team, danger, solver_data, path_list: dict):
                     danger_ok = False
 
                 # PB estimate
-                elif danger.perception == danger.options[1] and Hs_hat_v < s_alpha:
-                    danger_error = 'Error in planned path! s = ' + str(s_id0) + ' k = ' + str(s_alpha) + \
-                                   ' || v = ' + str(v) + ' z_hat = ' + str(Hs_hat_v)
-                    print(danger_error)
-                    danger_ok = False
+                elif danger.perception == danger.options[1]:
+                    Hs_hat_v = Hs_hat[vidx][s_idx]
+                    if Hs_hat_v < s_alpha:
+                        danger_error = 'Error in planned path! s = ' + str(s_id0) + ' k = ' + str(s_alpha) + \
+                                    ' || v = ' + str(v) + ' z_hat = ' + str(Hs_hat_v)
+                        print(danger_error)
+                        danger_ok = False
 
     belief_nonzero, plan_eval = check_wrt_belief(solver_data, team, path_list, sub_graphs, sub_Vs, vs_to_visit)
 

@@ -210,9 +210,6 @@ class MyGazeboSim:
         # for different simulation configs (pre defined specs according to option)
         self.set_desired_specs()
 
-        # need to adjust thresholds for size
-        self.adjust_threshold()
-
     def set_desired_specs(self):
         # define extra specs depending on the simulation option desired
         if self.sim_op == 1:
