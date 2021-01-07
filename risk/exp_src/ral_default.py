@@ -28,46 +28,12 @@ def specs_basic():
     return specs
 
 
-def specs_num_sim():
-    """Set specs that won't change"""
-
-    specs = specs_basic()
-
-    # ------------------------
-    # searchers' detection: capture range and false negatives
-    m = 3
-    v0 = [1, 1, 1]
-    specs.set_size_team(m)
-    specs.set_start_searchers(v0)
-
-    # ------------------------
-    # pseudorandom, repetitions for each configuration
-    specs.set_number_of_runs(1000)
-    # set random seeds
-    specs.set_start_seeds(2000, 6000)
-
-    return specs
-
-
-def default_thresholds():
-    # threshold of searchers
-    kappa = [3, 4, 5]
-    alpha = [0.6, 0.4, 0.4]
-
-    return kappa, alpha
-
-
-# ------------------------------------------
-""" Default specs danger
-Planner: point || Priori danger knowledge: uniform || Team makeup: k = [3, 4, 5]"""
-
-
-# PT-PU-345
-def specs_danger_common():
+def specs_danger(specs=None):
     """Set common danger specs
     """
 
-    specs = specs_num_sim()
+    if specs is None:
+        specs = specs_basic()
 
     # danger files
     base_name = 'estimate_danger_fire_des_NFF_freq_'
@@ -107,11 +73,66 @@ def specs_danger_common():
     return specs
 
 
+def specs_gazebo_sim(m):
+
+    # env etc
+    specs_b = specs_basic()
+
+    # danger info
+    specs = specs_danger(specs_b)
+
+    # size of the team
+    specs.set_size_team(m)
+
+    # number of runs
+    specs.set_number_of_runs(1)
+
+    return specs
+
+
+def specs_num_sim():
+    """Set specs that won't change"""
+
+    specs = specs_basic()
+
+    # ------------------------
+    # searchers' detection: capture range and false negatives
+    m = 3
+    v0 = []
+    for s in range(m):
+        v0.append(1)
+    specs.set_size_team(m)
+    specs.set_start_searchers(v0)
+
+    # ------------------------
+    # pseudorandom, repetitions for each configuration
+    specs.set_number_of_runs(1000)
+    # set random seeds
+    specs.set_start_seeds(2000, 6000)
+
+    specs = specs_danger(specs)
+
+    return specs
+
+
+def default_thresholds():
+    # threshold of searchers
+    kappa = [3, 4, 5]
+    alpha = [0.6, 0.4, 0.4]
+
+    return kappa, alpha
+
+
+# ------------------------------------------
+""" Default specs danger
+Planner: point || Priori danger knowledge: uniform || Team makeup: k = [3, 4, 5]"""
+
+
 # change planner
 def specs_prob(specs=None):
 
     if specs is None:
-        specs = specs_danger_common()
+        specs = specs_num_sim()
 
     # danger perception
     perception = 'prob'
@@ -130,7 +151,7 @@ def specs_no_danger(specs_in=None):
     """ND: best case scenario, no p(loss|lv)"""
 
     if specs_in is None:
-        specs_in = specs_danger_common()
+        specs_in = specs_num_sim()
 
     specs_in.use_kill(False)
     specs_in.use_danger_constraints(False)
@@ -145,7 +166,7 @@ def specs_no_constraints(specs_in=None):
     """NC: worst case, has p(loss|lv) but no danger constraints"""
 
     if specs_in is None:
-        specs_in = specs_danger_common()
+        specs_in = specs_num_sim()
 
     specs_in.use_kill(True, 3)
     specs_in.use_danger_constraints(False)
@@ -157,11 +178,23 @@ def specs_no_constraints(specs_in=None):
 """ Change specs"""
 
 
+def kappa_345(specs=None):
+
+    if specs is None:
+        specs = specs_num_sim()
+
+    kappa, alpha = default_thresholds()
+    specs.set_threshold(kappa, 'kappa')
+    specs.set_threshold(alpha, 'alpha')
+
+    return specs
+
+
 # change team makeup
 def kappa_335(specs=None):
 
     if specs is None:
-        specs = specs_danger_common()
+        specs = specs_num_sim()
 
     kappa = [3, 3, 5]
     alpha = [0.6, 0.6, 0.4]
@@ -174,7 +207,7 @@ def kappa_335(specs=None):
 def kappa_333(specs=None):
 
     if specs is None:
-        specs = specs_danger_common()
+        specs = specs_num_sim()
 
     kappa = [3, 3, 3]
     alpha = [0.6, 0.6, 0.6]
@@ -187,7 +220,7 @@ def kappa_333(specs=None):
 # change a priori
 def uniform_priori(specs=None):
     if specs is None:
-        specs = specs_danger_common()
+        specs = specs_num_sim()
 
     # a priori prob -> uniform
     specs.set_true_estimate(False)
@@ -198,7 +231,7 @@ def uniform_priori(specs=None):
 def perfect_priori(specs=None):
 
     if specs is None:
-        specs = specs_danger_common()
+        specs = specs_num_sim()
 
     # set perfect a priori knowledge
     specs.set_true_know(True)
@@ -216,9 +249,9 @@ def perfect_priori(specs=None):
 def pt_pu_345(specs_in=None):
 
     if specs_in is None:
-        specs_in = specs_danger_common()
+        specs_in = specs_num_sim()
 
-    specs = specs_in
+    specs = kappa_345(specs_in)
 
     return specs
 
@@ -226,7 +259,7 @@ def pt_pu_345(specs_in=None):
 def pt_pu_335(specs_in=None):
     """Alternative team makeup, point estimate, uniform a priori | PT-PU-335"""
     if specs_in is None:
-        specs_in = specs_danger_common()
+        specs_in = specs_num_sim()
     specs = kappa_335(specs_in)
 
     return specs
@@ -235,7 +268,7 @@ def pt_pu_335(specs_in=None):
 def pt_pu_333(specs_in=None):
     """Alternative team makeup, point estimate, uniform a priori | PT-PU-333"""
     if specs_in is None:
-        specs_in = specs_danger_common()
+        specs_in = specs_num_sim()
     specs = kappa_333(specs_in)
 
     return specs
@@ -243,7 +276,7 @@ def pt_pu_333(specs_in=None):
 
 def pt_pk_345(specs_in=None):
     if specs_in is None:
-        specs_in = specs_danger_common()
+        specs_in = specs_num_sim()
     specs = perfect_priori(specs_in)
 
     return specs
@@ -251,7 +284,7 @@ def pt_pk_345(specs_in=None):
 
 def pt_pk_335(specs_in=None):
     if specs_in is None:
-        specs_in = specs_danger_common()
+        specs_in = specs_num_sim()
 
     specs_345 = perfect_priori(specs_in)
     specs = kappa_335(specs_345)
@@ -261,7 +294,7 @@ def pt_pk_335(specs_in=None):
 
 def pt_pk_333(specs_in=None):
     if specs_in is None:
-        specs_in = specs_danger_common()
+        specs_in = specs_num_sim()
     specs_345 = perfect_priori(specs_in)
     specs = kappa_335(specs_345)
 

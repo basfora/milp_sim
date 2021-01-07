@@ -12,9 +12,9 @@ class MyGazeboSim:
 
         # original parameters (tailored to ral)
         self.v0 = [1]
-        self.kappa_original, self.alpha_original = ral.default_thresholds()
         self.m_original = 3
         self.S_original = [1, 2, 3]
+        self.kappa_original, self.alpha_original = None, None
 
         # map between original and this call
         self.id_map = []
@@ -103,11 +103,15 @@ class MyGazeboSim:
 
         return alive, killed, current_pos
 
-    def adjust_threshold(self):
+    def adjust_threshold(self, specs):
         """"List of threshold of alive searchers"""
 
         kappa = []
         alpha = []
+
+        # not adjusted for team size
+        self.kappa_original = specs.kappa
+        self.alpha_original = specs.alpha
 
         for s_original in self.S_original:
             idx = ext.get_python_idx(s_original)
@@ -120,8 +124,10 @@ class MyGazeboSim:
         self.alpha = alpha
 
         # set thresholds of only of those alive
-        self.specs.set_threshold(self.kappa, 'kappa')
-        self.specs.set_threshold(self.alpha, 'alpha')
+        specs.set_threshold(self.kappa, 'kappa')
+        specs.set_threshold(self.alpha, 'alpha')
+
+        return specs
 
     @staticmethod
     def all_killed(alive_list: list):
@@ -193,53 +199,49 @@ class MyGazeboSim:
         self.m = m
 
         # basic specs
-        specs = ral.specs_basic()
-        specs.set_size_team(m)
-        specs.set_number_of_runs(1)
-        self.specs = specs
+        specs = ral.specs_gazebo_sim(m)
 
         # set start searchers from current position
-        self.specs.set_start_searchers(self.current_pos)
-
-        # set threshold of searchers
-        self.adjust_threshold()
+        specs.set_start_searchers(self.current_pos)
 
         # set belief from previous time
-        self.specs.set_b0(self.bt_1)
+        specs.set_b0(self.bt_1)
 
         # make sure current positions are there
         self.update_visited(self.current_pos)
-
         # for different simulation configs (pre defined specs according to option)
-        self.set_desired_specs()
+        self.set_desired_specs(specs)
 
-    def set_desired_specs(self):
+    def set_desired_specs(self, specs):
         # define extra specs depending on the simulation option desired
         if self.sim_op == 1:
-            my_specs = ral.pt_pu_345(self.specs)
+            my_specs = ral.pt_pu_345(specs)
         elif self.sim_op == 2:
-            my_specs = ral.pt_pk_345(self.specs)
+            my_specs = ral.pt_pk_345(specs)
         elif self.sim_op == 3:
-            my_specs = ral.specs_no_constraints(self.specs)
+            my_specs = ral.specs_no_constraints(specs)
         elif self.sim_op == 4:
-            my_specs = ral.specs_no_danger(self.specs)
+            my_specs = ral.specs_no_danger(specs)
         elif self.sim_op == 5:
-            my_specs = ral.pb_pu_345(self.specs)
+            my_specs = ral.pb_pu_345(specs)
         elif self.sim_op == 6:
-            my_specs = ral.pb_pk_345(self.specs)
+            my_specs = ral.pb_pk_345(specs)
         elif self.sim_op == 7:
-            my_specs = ral.pt_pu_335(self.specs)
+            my_specs = ral.pt_pu_335(specs)
         elif self.sim_op == 8:
-            my_specs = ral.pt_pu_333(self.specs)
+            my_specs = ral.pt_pu_333(specs)
         elif self.sim_op == 9:
-            my_specs = ral.pb_pu_335(self.specs)
+            my_specs = ral.pb_pu_335(specs)
         elif self.sim_op == 10:
-            my_specs = ral.pb_pu_333(self.specs)
+            my_specs = ral.pb_pu_333(specs)
         else:
             my_specs = None
             exit(print('Please provide a valid sim option. Ending simulation.'))
 
-        self.specs = my_specs
+        # set threshold of searchers
+        specs = self.adjust_threshold(my_specs)
+
+        self.specs = specs
 
     # --------------------------------------------------------------------------------
     # Simulate and save
