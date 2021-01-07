@@ -243,6 +243,11 @@ def test_pu_pb_335():
 
     assert ms.specs.danger_constraints is True
     assert ms.specs.danger_kill is True
+    # check specs basic ok
+    assert ms.specs.horizon == 14
+    # check if danger was set correctly
+    assert ms.specs.danger_true == 'gt_danger_NFF'
+    assert ms.specs.perception == ms.specs.perception_list[1]
 
     # input parameters
     assert ms.input_pos == [2, 3, 4]
@@ -269,4 +274,64 @@ def test_pu_pb_335():
 
     # no effect on capture (too far)
     assert b_dummy == my_belief_vector
+
+    del ms
+
+    # ------------
+    # next time step
+    next_v = bf.next_position(my_plan)
+    visited = bf.smart_list_add(my_visited, next_v)
+    t = 1
+    # searcher 2 got stuck
+    pos_dummy = [next_v[0], -2, next_v[2]]
+
+    # time step 1
+    ms = MyGazeboSim(pos_dummy, my_belief_vector, visited, t, simulation_op)
+
+    assert ms.specs.danger_constraints is True
+    assert ms.specs.danger_kill is True
+    # check specs basic ok
+    assert ms.specs.horizon == 14
+    # check if danger was set correctly
+    assert ms.specs.danger_true == 'gt_danger_NFF'
+    assert ms.specs.perception == ms.specs.perception_list[1]
+
+    # original parameters (same as before)
+    assert ms.v0 == [1]
+    assert ms.kappa_original == [3, 3, 5]
+    assert ms.alpha_original == [0.6, 0.6, 0.4]
+    assert ms.S_original == [1, 2, 3]
+    assert ms.m_original == 3
+
+    # result of input parameters
+    assert ms.id_map == [(1, 1), (2, -1), (3, 2)]
+    assert ms.input_pos == pos_dummy
+    assert ms.bt_1 == my_belief_vector
+    assert ms.time_step == 1
+    assert ms.sim_op == simulation_op
+
+    # modified (2/3 searchers were alive prior to interaction)
+    assert ms.visited == visited
+    assert ms.current_pos == [next_v[0], next_v[2]]
+    assert ms.m == 2
+    assert ms.kappa == [3, 5]
+    assert ms.alpha == [0.6, 0.4]
+
+    assert ms.alive == [1, 3]
+    assert ms.killed == [2]
+    assert ms.abort is False
+
+    my_plan, my_belief_vector, my_visited = ms.output_results()
+
+    assert my_plan[2] == [-1 for i in range(14 + 1)]
+    assert len(my_belief_vector) == 47
+
+    no_change = True
+    for el in ms.current_pos:
+        if el in v_maybe:
+            no_change = False
+
+    # no effect on capture (too far)
+    if no_change:
+        assert b_dummy == my_belief_vector
 
