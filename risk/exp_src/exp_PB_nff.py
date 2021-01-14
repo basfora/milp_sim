@@ -27,37 +27,46 @@ if __name__ == "__main__":
     i = 1
     tic = get_timer()
 
-    """PB-PU-345"""
-    # default
-    specs = ral.pb_pu_345()
-    ral.num_sim(specs)
-    # ---
-    del specs
-    i, tic = get_time(tic, i)
+    # """PB-PU-345"""
+    # # default
+    # specs = ral.pb_pu_345()
+    # ral.num_sim(specs)
+    # # ---
+    # del specs
+    # i, tic = get_time(tic, i)
 
-    """PB-PK-345"""
-    # default
+    # """PB-PK-345"""
     specs = ral.pb_pk_345()
+    specs.set_today_run(957)
+    specs.set_number_of_runs(1000)
     ral.num_sim(specs)
     # ---
     del specs
     i, tic = get_time(tic, i)
 
-    """PB-PU-335"""
-    # default
-    specs = ral.pb_pu_335()
-    ral.num_sim(specs)
-    # ---
-    del specs
-    i, tic = get_time(tic, i)
+    # """PB-PU-335"""
+    # # default
+    # specs = ral.pb_pu_335()
+    # ral.num_sim(specs)
+    # # ---
+    # del specs
+    # i, tic = get_time(tic, i)
 
-    """PB-PU-333"""
-    # default
-    specs = ral.pb_pu_333()
-    ral.num_sim(specs)
-    # ---
-    del specs
-    i, tic = get_time(tic, i)
+    # """PT-PU-333"""
+    # # default
+    # specs = ral.pt_pu_333()
+    # ral.num_sim(specs)
+    # # ---
+    # del specs
+    # i, tic = get_time(tic, i)
+    #
+    # """PB-PU-333"""
+    # # default
+    # specs = ral.pb_pu_333()
+    # ral.num_sim(specs)
+    # # ---
+    # del specs
+    # i, tic = get_time(tic, i)
 
 
 

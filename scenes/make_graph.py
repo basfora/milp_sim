@@ -14,7 +14,7 @@ plt.rcParams.update({'legend.fontsize': 12})
 # ieee compliant plots
 plt.rcParams.update({'text.usetex': True})
 plt.rcParams.update({'font.family': 'serif'})
-
+from matplotlib.font_manager import FontProperties
 a_x = 1.1
 
 
@@ -616,7 +616,7 @@ def save_plot(fig_name: str, folder='figs', my_ext='.pdf'):
     # plt.axis('off')
 
     plt.savefig(fig_path, facecolor=None, edgecolor=None,
-                orientation='landscape', transparent=True, )
+                orientation='landscape', transparent=True, bbox_inches='tight')
 
     plt.show()
 
@@ -767,17 +767,33 @@ def plot_graph(bloat=False, number=False, edges=True, finish=False):
             v1 = el[0] - 1
             v2 = el[1] - 1
             E_plot.append((v1, v2))
-        pf.plot_points_between_list(V, E_plot, my_color, 'o')
+        pf.plot_points_between_list(V, E_plot, 'dimgray', 'o', 2)
     else:
         pf.plot_points(V, my_color, 'o', 2)
 
     if number:
+        font_v = FontProperties()
+        alignment = {'horizontalalignment': 'center', 'verticalalignment': 'center'}
+        families = ['serif', 'sans-serif', 'cursive', 'fantasy', 'monospace']
+        font_v.set_size(8)
+        font_v.set_weight('bold')
+        font_v.set_family('fantasy')
+
         # plot index + 1 at v coordinates +- offset
         for coord in V:
             i = V.index(coord) + 1
-            x = coord[0] + 0.5
-            y = coord[1] + 0.75
-            plt.text(x, y, str(i), fontsize=8, color=my_color)
+            if i < 10:
+                dx, dy = 0.5, 0.5
+            elif i < 40:
+                dx, dy = 0.7, 0.62
+            else:
+                dx, dy = 0.75, 0.62
+
+            dx, dy = 0, 0
+
+            x = coord[0] - dx # - 0.5
+            y = coord[1] - dy #+ 0.75
+            plt.text(x, y, str(i), fontproperties=font_v, color='indigo', **alignment)
 
     if finish:
 
@@ -956,6 +972,7 @@ if __name__ == '__main__':
     # create_igraph()
     # build_gazebo_ss2()
     bloat = True
+    plot_all(bloat)
     plot_all(bloat)
     # plot_bloat_school_pose()
     # align_pose_school()

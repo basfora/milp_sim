@@ -16,9 +16,9 @@ import numpy as np
 
 class RiskPlot:
 
-    def __init__(self):
+    def __init__(self, n_runs=1000):
 
-        self.n_runs = 1000
+        self.n_runs = n_runs
         self.list_runs = []
 
         self.customize = CustomizePlot()
@@ -123,7 +123,7 @@ class RiskPlot:
     def retrieve_data(self, folder_name: str, instance_base: str, subtitle=''):
         """Retrieve data"""
 
-        stat = MyStats(folder_name, instance_base)
+        stat = MyStats(folder_name, instance_base, self.n_runs)
 
         # rates to plot
         success_rate = stat.cum_success_rate
@@ -188,6 +188,8 @@ class RiskPlot:
             outcomes_list.append(out_data)
             outcomes_cum.append(cum_data)
 
+            del stat
+
         self.cum_outcomes = outcomes_cum
         self.outcomes = self.change_format_outcomes(self.N, outcomes_list)
         self.compute_MC(0)
@@ -221,6 +223,8 @@ class RiskPlot:
 
             times_list.append(out_data)
             times_cum.append(cum_data)
+
+            del stat
 
         self.cum_times = times_cum
         self.times = times_list # self.change_format_outcomes(self.N, times_list)
@@ -273,9 +277,9 @@ class RiskPlot:
         self.plot_error_point(plot_n)
 
     def plot_error_point(self, plot_n=0):
+        """Plot with lines"""
 
         # get padding
-
         self.set_x_ticks()
         self.set_title()
         self.set_lgd(plot_n)
@@ -283,7 +287,83 @@ class RiskPlot:
         fig = plt.figure()
         ax = fig.add_subplot(111)
 
-        marker_size = 6
+        colors = ['bo--', 'ks--', 'ro--']
+        my_markers = ['o', 's', 'o']
+
+        for j in range(3):
+
+            x = []
+            y = []
+
+            yr = []
+
+            for i in range(self.configs):
+                print('------\nConfig %d ---- ' % i)
+
+                std = self.std[i][j]
+                y_1 = self.mean[i][j]
+
+                y_i = self.avg[i][j]
+                y_low_i = self.y_low[i][j]
+                y_up_i = self.y_up[i][j]
+
+                if y_up_i > 100:
+                    y_up_i = 0
+
+                if y is None:
+                    continue
+
+                print('%s: %.2f +- %.2f' % (self.lgd[j], y_1, std))
+
+                if plot_n < 2:
+                    y_i = self.prob_to_per(y_i)
+
+                # make into lists
+                x.append(self.x_list[i])
+                y.append(y_i)
+                yr.append(y_up_i)
+
+            if plot_n == 2:
+                y_plot = yr
+            else:
+                y_plot = None
+
+            plt.errorbar(x, y, yerr=y_plot, linewidth=0.5, linestyle='--', fmt=colors[j])
+
+        # plot labels
+        f_size = 16
+        ax.set_ylabel(self.y_label[plot_n], fontsize=f_size)
+        my_handle = []
+        for j in range(len(self.avg[0])):
+            my_handle.append(mlines.Line2D([], [], linestyle='--', linewidth=0.5, marker=my_markers[j], markersize=7, color=colors[j][0], label=self.lgd[j]))
+
+        if plot_n == 1:
+            # casualties
+            my_loc = 'lower right' # 'upper right'
+        elif plot_n == 0:
+            # outcomes
+            my_loc = 'upper right'
+        else:
+            # time
+            my_loc = 'upper right' #''center left'
+
+        plt.legend(handles=my_handle, frameon=False, loc=my_loc, fontsize=16)
+
+        # save fig
+        fig_path = MyDanger.get_folder_path('figs')
+        fig_name = fig_path + '/' + self.fig_name[plot_n] + '.pdf'
+        fig.savefig(fig_name, bbox_inches='tight')
+        plt.close()
+
+    def plot_error_point_only(self, plot_n=0):
+
+        # get padding
+        self.set_x_ticks()
+        self.set_title()
+        self.set_lgd(plot_n)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
 
         colors = ['bo', 'ks', 'ro']
         my_markers = ['o', 's', 'o']
@@ -321,8 +401,8 @@ class RiskPlot:
                 x = [self.x_list[i]]
                 y = [y]
 
-                plt.errorbar(x, y, yerr=assy, fmt=colors[j])
-                # markersize=marker_size, marker=my_markers[j]
+                plt.errorbar(x, y, yerr=assy, linestyle=None, fmt=colors[j])
+
         # plot labels
         f_size = 16
         ax.set_ylabel(self.y_label[plot_n], fontsize=f_size)
@@ -330,17 +410,19 @@ class RiskPlot:
         my_handle = []
 
         for j in range(len(self.avg[0])):
-            if plot_n == 2:
-                my_handle.append(mlines.Line2D([], [], marker=my_markers[j], markersize=8, color=colors[j][0], label=self.lgd[j]))
-            else:
-                my_handle.append(mlines.Line2D([], [], linestyle='None', marker=my_markers[j], markersize=7, color=colors[j][0], label=self.lgd[j]))
+            # if plot_n == 2:
+            #     my_handle.append(
+            #         mlines.Line2D([], [], marker=my_markers[j], markersize=8, color=colors[j][0], label=self.lgd[j]))
+            # else:
+            my_handle.append(mlines.Line2D([], [], linestyle='None', marker=my_markers[j], markersize=7, color=colors[j][0],
+                                           label=self.lgd[j]))
 
         if plot_n == 1:
             my_loc = 'upper right'
         elif plot_n == 0:
             my_loc = 'upper right'
         else:
-            my_loc = 'upper left' #'center left'
+            my_loc = 'upper left'  # 'center left'
 
         plt.legend(handles=my_handle, frameon=False, loc=my_loc, fontsize=16)
 
@@ -348,6 +430,7 @@ class RiskPlot:
         fig_path = MyDanger.get_folder_path('figs')
         fig_name = fig_path + '/' + self.fig_name[plot_n] + '.pdf'
         fig.savefig(fig_name, bbox_inches='tight')
+        plt.close()
 
         # show me
         # plt.show()
@@ -506,9 +589,9 @@ class RiskPlot:
         self.title.append('Missions with Casualties')
         self.title.append('Mission Times')
 
-        self.y_label = ['Missions [ \% ]', 'Missions [ \% ]', 'Average Time [ steps ]']
+        self.y_label = ['Mission Outcomes [ \% ]', 'Missions with Losses [ \% ]', 'Average Time [ steps ]']
 
-        self.fig_name = ['mission_outcomes7', 'casualties7', 'times7']
+        self.fig_name = ['mission_outcomes_1000_a', 'casualties_1000_a', 'times_1000_a']
 
     def set_config_names(self):
 
@@ -530,8 +613,9 @@ class RiskPlot:
 
     def set_x_ticks(self):
 
-        # self.x_list = ['ND', 'PK-PT', 'PK-PB', 'PU-PT', '335','PU-PB', 'NC']
-        self.x_list = ['H-FC', 'H-FF', 'I-FF', 'I-FC']
+        # self.x_list = ['ND', 'PT-PK\n345', 'PB-PK\n345', 'PT-PU\n345', 'PB-PU\n345', 'NC']
+        self.x_list = ['PT-PU\n345', 'PT-PU\n335', 'PT-PU\n333', 'PB-PU\n345',  'PB-PU\n335',  'PB-PU\n333']
+        # self.x_list = ['H-FC', 'H-FF', 'I-FF', 'I-FC']
         # self.x_list = ['I5-PT-345', 'I5-PT-335']
 
     # --------------------------------------
@@ -680,7 +764,7 @@ class RiskPlot:
 
             # fig_1, ax_arr = plt.subplots(1, 1, figsize=(9, 5), dpi=150)
 
-            mg.plot_ss2(bloat, True, 'dimgray')
+            mg.plot_ss2(bloat, True, 'darkgray')
 
             mg.plot_graph(bloat, True, True)
 
@@ -695,18 +779,29 @@ class RiskPlot:
                     vidx = V.index(v)
                     my_color = colors[vidx]
 
-                    self.plot_points([v], my_color, 'o', 6)
+                    self.plot_points([v], my_color, 'o', 13)  # 6
 
-            xy = [0.125, 0.15]
-            rpf.my_hazard_labels(fig, xy, 14)
+            xy = [0.15, 0.15]  # [0.125, 0.15]
+            if i < 1:
+                rpf.my_hazard_labels(fig, xy, 12)
+
+            ha = 0.88
+            wa = 0.73
+
+            xy2 = [[0.725, 0.515], [0.135, 0.799], [0.27, 0.81],
+                   [0.45, ha], [0.57, ha], [0.69, ha], [0.8, ha],
+                   [wa, 0.585], [wa, 0.635], [wa, 0.685], [0.90, 0.6]]
+            rooms = ['GYM', 'CAFE', 'HALL 2',
+                     'CLASS D', 'CLASS C', 'CLASS B', 'CLASS A',
+                     'STGE', 'WC1', 'WC2', 'HALL 1']
+            rpf.my_rooms_label(fig, xy2, rooms, 9)
 
             plt.xlim(right=72, left=-7)  # adjust the right leaving left unchanged
             plt.ylim(bottom=-0.5, top=59)
 
             plt.axis('off')
 
-            my_str = 'School Scenario' #'Danger Graph, ' + str(per_list[i]) + '\% images'
-            # plt.title(my_str, fontsize=20, weight='heavy')
+            my_str = 'School Scenario'
 
             # save fig
             fig_path = MyDanger.get_folder_path('figs')
@@ -715,8 +810,6 @@ class RiskPlot:
 
             fig_name = 'danger_graph_' + str(per_list[i])
             mg.save_plot(fig_name, 'figs', '.pdf')
-
-            # plt.show()
 
     def get_vertices_color(self, per=100):
         my_color = []
@@ -731,8 +824,7 @@ class RiskPlot:
 if __name__ == "__main__":
 
     risk_data = RiskPlot()
-    list_danger = ['gt_danger_NFF', 'estimate_danger_both_des_NFF_freq_100', 'estimate_danger_fire_des_NFF_freq_100',
-                   'estimate_danger_both_des_NFF_freq_05', 'estimate_danger_fire_des_NFF_freq_05']
+    list_danger = ['gt_danger_NFF', 'estimate_danger_fire_des_NFF_freq_05']
     risk_data.set_danger_files(list_danger)
     risk_data.print_danger_data()
     risk_data.plot_graph_school()

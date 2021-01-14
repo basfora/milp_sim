@@ -272,6 +272,7 @@ def test_log_file2():
     assert my_belief_vector[0] == b_dummy[8]
     assert my_belief_vector[8] == 0
 
+
 def test_pu_pb_335():
     # dummy parameters to test
     n = 46

@@ -225,6 +225,24 @@ def save_copied_frames(path_to_folder: str, frame_idx: int, n_frames_per=60):
         plt.savefig(fname, facecolor=None, edgecolor=None, orientation='landscape', transparent=True)
 
 
+def my_rooms_label(fig_1, xy: list, rooms, f_size=12):
+
+    for i, r in enumerate(rooms):
+        c = 0
+        if r == 'HALL 1':
+            c = 270
+
+        x = xy[i][0]
+        y = xy[i][1]
+
+        my_font = {'family': 'sans-serif', 'color': 'grey', 'weight': 'heavy', 'size': f_size,
+                      'horizontalalignment': 'left'}
+
+        fig_1.text(x, y, rooms[i], fontdict=my_font, rotation=c)
+
+    return fig_1
+
+
 def my_hazard_labels(fig_1, xy=None, f_size=12):
 
     levels = [1, 2, 3, 4, 5]
@@ -240,14 +258,19 @@ def my_hazard_labels(fig_1, xy=None, f_size=12):
     else:
         x, y = xy[0], xy[1]
 
+    x_, y_ = -6, 3.8
+
     for i in levels:
 
-        my_font[i] = {'family': 'sans-serif', 'color': level_color[i], 'weight': 'heavy', 'size': f_size,
-                'horizontalalignment': 'left'}
+        my_font[i] = {'family': 'sans-serif', 'color': 'black', 'weight': 'heavy', 'size': f_size,
+                      'horizontalalignment': 'left'}
+
+        plt.plot(x_, y_, color=level_color[i], marker='o', markersize=6)
 
         fig_1.text(x, y, level_label[i], fontdict=my_font[i])
 
-        y = y + 0.08
+        y = y + 0.06 # 0.08
+        y_ = y_ + 4.7
 
     return fig_1
 

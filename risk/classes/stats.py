@@ -23,20 +23,20 @@ class MyStats:
     """Class to make computing stats easier for each configuration (e.g. NC DK worst case scenario, big prob)
     """
 
-    def __init__(self, folder_name: str, instance_base: str, n_runs=1000): # perception: str, n_runs=1000, probname='h', etra=''):
+    def __init__(self, folder_name: str, instance_base: str, n_runs=1000):
 
         # to id
         self.parent_name = folder_name
         self.instance_base = instance_base
 
+        self.planner = folder_name.split('-')[1]
+        self.priori = folder_name.split('-')[2]
+        self.makeup = folder_name.split('-')[3]
         # config name, e.g. NCDK
-        self.config = folder_name.split('-')[0][4:]
-        self.img_per = folder_name.split('-')[-1]
-
-        try:
-            a = int(self.img_per)
-        except:
-            self.img_per = folder_name.split('-')[-2]
+        self.config = self.planner + self.priori + self.makeup
+        self.img_per = '05'
+        if 'PK' in self.priori:
+            self.img_per = 'HG'
 
         # self.img_per = self.get_img_per(img_per)
         self.print_name(folder_name, '--\nStats for')
@@ -58,7 +58,7 @@ class MyStats:
         # self.assemble_middle()
         self.f_name = 'saved_data.pkl'
 
-        self.n_runs = 0
+        self.n_runs = n_runs
         self.list_runs = []
         self.set_n_turns(n_runs)
 
@@ -127,6 +127,9 @@ class MyStats:
         self.casualty_not_mvp = []
         # number of casualties per mission, list[id] = 0/1/2/3
         self.casualty_list = []
+        # true for alive, false for killed
+        self.casualty_agent_rate = []
+        self.casualty_per_agent = []
 
         # in how many missions the MVP died, +1 for each mission it happened
         self.casualty_counter_mvp = 0
@@ -342,6 +345,11 @@ class MyStats:
             else:
                 self.casualty_not_mvp.append(False)
 
+        # agent status
+        for sidx in range(self.m):
+            if not ins.agent_status[sidx]:
+                self.casualty_per_agent[sidx] += 1
+
     def update_cum_stats(self, ins, q=None):
         if q is None:
             q = ins.id
@@ -402,10 +410,16 @@ class MyStats:
         self.casualty_rate_mvp = self.get_last(self.cum_casualty_mvp_rate)
         self.casualty_rate_not_mvp = self.get_last(self.cum_casualty_not_mvp_rate)
         self.casualty_mission = self.get_last(self.cum_casualty_mission_rate)
+        self.get_casualties_per_agent()
 
         self.mission_time_avg = self.get_last(self.cum_mission_time)
         self.abort_time_avg = self.get_last(self.cum_abort_time)
         self.capture_time_avg = self.get_last(self.cum_capture_time)
+
+    def get_casualties_per_agent(self):
+
+        for i in self.casualty_per_agent:
+            self.casualty_agent_rate.append(round(i/self.n_runs, 4))
 
     """Retrieving stuff"""
     @staticmethod
@@ -453,6 +467,9 @@ class MyStats:
 
         est = ins.specs.danger_hat
 
+        if est is None and self.true_priori:
+            est = ins.specs.danger_true
+
         if 'NCF' in est:
             self.env = 'NCF'
         elif 'NFF' in est:
@@ -479,7 +496,7 @@ class MyStats:
 
         if 'MGT' in self.config:
             assert self.human_truth is False
-        elif 'HGT' in self.config:
+        elif 'HT' in self.config:
             assert self.human_truth is True
 
         if 'FF' in self.config:
@@ -497,6 +514,7 @@ class MyStats:
         self.timeout = ins.solver_data.timeout
         # target parameter
         self.target_motion = 'static'
+        self.casualty_per_agent = [0 for i in range(self.m)]
 
         self.print_common_param()
 
@@ -560,6 +578,7 @@ class MyStats:
         print('..Breakdown')
         self.print_stats('Mission with MVP casualty,', self.per_from_prob(self.casualty_rate_mvp), 4)
         self.print_stats('Mission with non-MVP casualty,', self.per_from_prob(self.casualty_rate_not_mvp), 4)
+        self.print_stats('Casualties per agent', self.casualty_agent_rate, 1)
 
         self.print_dots()
 
@@ -602,8 +621,12 @@ class MyInstance:
         # casualties
         self.number_casualties = 0
         self.casualty_mvp = False
+        self.non_mvp = False
         self.casualty = False
         self.casualty_not_mvp = False
+
+        # searchers, true for alive, false for lost
+        self.agent_status = []
 
         # extract important data
         self.extract_data(data)
@@ -659,8 +682,12 @@ class MyInstance:
             if self.number_casualties > 1 or self.casualty_mvp is False:
                 self.non_mvp = True
 
-
-
+        # status of each agent, true for alive, false for lost
+        for s in range(1, self.team.size_original + 1):
+            if s in self.team.alive:
+                self.agent_status.append(True)
+            else:
+                self.agent_status.append(False)
 
 
 
